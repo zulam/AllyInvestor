@@ -5,11 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python",
+            "type": "python",
+            "pythonPath":"${config:python.pythonPath}", 
+            "request": "launch",
+            "stopOnEntry": true,
+            "program": "${file}",
+            "cwd": "${workspaceRoot}",
+            "env": {"name":"value"}
+        },
+        {
+            "name": "Python: Current File (Integrated Terminal)",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
+        },
+        
+        {
+            "name": "Python: Current File (External Terminal)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "externalTerminal"
         }
     ]
 }
