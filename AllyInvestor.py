@@ -1,17 +1,23 @@
+import logging 
 import time
 from datetime import datetime
+from datetime import date
 from requests_oauthlib import OAuth1Session
 import smtplib
 import config as cfg
 
-# getting tickers
+logging.basicConfig(filename=cfg.file['log_path'] + date.today().strftime('%m-%d-%y') + '.log', level=logging.DEBUG)
+logging.getLogger('oauthlib').setLevel('WARNING')
+logging.getLogger('urllib3').setLevel('WARNING')
+logging.getLogger('requests_oauthlib').setLevel('WARNING')
+logging.debug('Getting tickers.')
 ticker_list = []
 ticker_list_condensed = []
 company_file = open(cfg.file['company_list'])
 for line in company_file:
     ticker_list.append(line.split('|')[0])
 
-# initialize
+logging.debug('Initializing.')
 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
 ctr = 0
 lim = 100
@@ -23,7 +29,7 @@ auth = OAuth1Session(
     cfg.key['oauth_token'],
     cfg.key['oauth_token_secret'])
 
-# filter out expensive stocks
+logging.debug('Filtering out expensive stocks.')
 for ticker in ticker_list:
     temp_url = url + ticker
     try:
@@ -40,8 +46,9 @@ for ticker in ticker_list:
             # ctr += 1
     except Exception as error:
         print(error)
+        logging.error(error)
 
-# empty loop until market opens
+logging.debug('Empty loop until market opens.')
 before_hours = True
 while before_hours:
     cur_time = datetime.now()
@@ -50,7 +57,7 @@ while before_hours:
     if (hour == 9 and minute > 30) or hour >= 10:
         before_hours = False
 
-# market has opened
+logging.debug('market has opened')
 market_open = True
 while market_open:
     for ticker in ticker_list_condensed:
@@ -86,9 +93,11 @@ while market_open:
                     server.sendmail(sender, receiver, message)
                     ticker_list_condensed.remove(ticker)
                 except Exception as error:
-                    print('ERROR: ', error)
+                    print(error)
+                    logging.error(error)
         except Exception as error:
-            print('ERROR: ', error)
+            print(error)
+            logging.error(error)
 
 # complete
-print('complete')
+logging.debug('Job complete.')
