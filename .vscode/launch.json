@@ -7,7 +7,7 @@
         {
             "name": "Python",
             "type": "python",
-            "pythonPath":"${config:python.pythonPath}", 
+            "pythonPath":"${command:python.interpreterPath}", 
             "request": "launch",
             "stopOnEntry": true,
             "program": "${file}",
