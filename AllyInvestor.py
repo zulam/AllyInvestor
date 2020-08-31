@@ -1,5 +1,7 @@
+import logging 
 import time
 from datetime import datetime
+from datetime import date
 from requests_oauthlib import OAuth1Session
 import smtplib
 import config as cfg
@@ -116,4 +118,4 @@ except Exception as error:
 #             print('ERROR: ', error)
 
 # complete
-print('complete')
+logging.debug('Job complete.')
