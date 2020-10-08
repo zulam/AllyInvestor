@@ -1,18 +1,17 @@
-import time
 from datetime import datetime
 from datetime import date
+from dateutil.relativedelta import relativedelta
+from requests_oauthlib import OAuth1Session
+import time
 import smtplib
 import config as cfg
 import requests
-from dateutil.relativedelta import relativedelta
-from requests_oauthlib import OAuth1Session
 import Stock
 
 # getting tickers
 ticker_list = []
 ticker_list_condensed = []
 stocks_bought = {}
-holdings = {}
 sym_ign = ['D', 'FNCL', 'GLD', 'IEFA', 'ILTB' , 'OKE', 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 company_file = open(cfg.file['company_list'])
 for line in company_file:
@@ -46,7 +45,8 @@ for ticker in ticker_list:
             time.sleep(1)
             r = auth.get(temp_url)
             json_result = r.json()
-            ask = float(json_result['response']['quotes']['quote']['ask'])
+            ask_str = json_result['response']['quotes']['quote']['ask']
+            ask = float(ask_str) if ask_str != '' else 0
             if ask <= price_max and ask != 0 and ask >= price_min:
                 ticker_list_condensed.append(ticker)
                 print(ticker)
@@ -115,6 +115,7 @@ while market_open:
             cfg.key['oauth_token_secret'])
         
         try: 
+            holdings = {}
             request = auth.get(owned_url)
             profile = request.json()
             info = profile['response']['accounts']['accountsummary']
@@ -130,7 +131,7 @@ while market_open:
                 rate = (value[0] - value[1]) / value[0]
                 if (rate >= sellTop or rate <= sellBottom):
                     #send email to sell stock
-                    stocks_bought.pop(key)
+                    #stocks_bought.pop(key)
                     smtp_server = "smtp.gmail.com"
                     port = 587
                     sender = cfg.email['receiver']
@@ -149,35 +150,4 @@ while market_open:
                         print('ERROR: ', error)
         except Exception as error:
             print('ERROR: ', error)
-
-        # for key, value in stocks_bought.items():
-        #     temp_url = url + key
-        #     try:
-        #         time.sleep(1)
-        #         r = auth.get(temp_url)
-        #         json_result = r.json()
-        #         ask = float(json_result['response']['quotes']['quote']['ask'])
-        #         rate_from_bought = (ask - value) / value
-        #         if (rate_from_bought > sellTop or rate_from_bought < sellBottom):
-        #             # send email to sell stock
-        #             stocks_bought.pop(key)
-        #             smtp_server = "smtp.gmail.com"
-        #             port = 587
-        #             sender = cfg.email['sender']
-        #             receiver = cfg.email['receiver']
-        #             password = cfg.email['sender_password']
-        #             message = 'Sell ' + key + ' at ' + str(ask) + ' (' \
-        #                     + str(round(rate_from_bought, 4) * 100) + '% from bought)'
-        #             try:
-        #                 server = smtplib.SMTP(smtp_server, port)
-        #                 server.starttls()
-        #                 server.login(sender, password)
-        #                 server.sendmail(sender, receiver, message)
-        #                 ticker_list_condensed.append(key)
-        #                 break
-        #             except Exception as error:
-        #                 print('ERROR: ', error)
-        #     except Exception as error:
-        #         print('ERROR: ', error)
-
 print('complete')
