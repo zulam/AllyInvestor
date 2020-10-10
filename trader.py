@@ -107,14 +107,13 @@ while market_open:
             print('ERROR: ', error)
 
         #check to sell
-        owned_url = 'https://api.tradeking.com/v1/accounts.json'
-        auth = OAuth1Session(
-            cfg.key['consumer_key'],
-            cfg.key['consumer_secret'],
-            cfg.key['oauth_token'],
-            cfg.key['oauth_token_secret'])
-        
         try: 
+            owned_url = 'https://api.tradeking.com/v1/accounts.json'
+            auth = OAuth1Session(
+                cfg.key['consumer_key'],
+                cfg.key['consumer_secret'],
+                cfg.key['oauth_token'],
+                cfg.key['oauth_token_secret'])
             holdings = {}
             request = auth.get(owned_url)
             profile = request.json()
@@ -139,15 +138,12 @@ while market_open:
                     password = cfg.email['password']
                     message = 'Sell ' + key + ' at ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
-                    try:
-                        server = smtplib.SMTP(smtp_server, port)
-                        server.starttls()
-                        server.login(sender, password)
-                        server.sendmail(sender, receiver, message)
-                        ticker_list_condensed.append(key)
-                        break
-                    except Exception as error:
-                        print('ERROR: ', error)
+                    server = smtplib.SMTP(smtp_server, port)
+                    server.starttls()
+                    server.login(sender, password)
+                    server.sendmail(sender, receiver, message)
+                    ticker_list_condensed.append(key)
+                    break
         except Exception as error:
             print('ERROR: ', error)
 print('complete')
