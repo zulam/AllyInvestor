@@ -28,11 +28,14 @@ url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
 # lim = 50
 price_max = 1
 price_min = .01
-auth = OAuth1Session(
-    cfg.key['consumer_key'],
-    cfg.key['consumer_secret'],
-    cfg.key['oauth_token'],
-    cfg.key['oauth_token_secret'])
+try:
+    auth = OAuth1Session(
+        cfg.key['consumer_key'],
+        cfg.key['consumer_secret'],
+        cfg.key['oauth_token'],
+        cfg.key['oauth_token_secret'])
+except Exception as error:
+            print(error)
 
 # filter out expensive stocks
 for ticker in ticker_list:
@@ -66,6 +69,11 @@ while before_hours:
 # market has opened
 market_open = True
 while market_open:
+    auth = OAuth1Session(
+        cfg.key['consumer_key'],
+        cfg.key['consumer_secret'],
+        cfg.key['oauth_token'],
+        cfg.key['oauth_token_secret'])
     for ticker in ticker_list_condensed:
         if not market_open:
             break
@@ -109,11 +117,6 @@ while market_open:
         #check to sell
         try: 
             owned_url = 'https://api.tradeking.com/v1/accounts.json'
-            auth = OAuth1Session(
-                cfg.key['consumer_key'],
-                cfg.key['consumer_secret'],
-                cfg.key['oauth_token'],
-                cfg.key['oauth_token_secret'])
             holdings = {}
             request = auth.get(owned_url)
             profile = request.json()
