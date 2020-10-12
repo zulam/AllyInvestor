@@ -69,84 +69,81 @@ while before_hours:
 # market has opened
 market_open = True
 while market_open:
-    auth = OAuth1Session(
-        cfg.key['consumer_key'],
-        cfg.key['consumer_secret'],
-        cfg.key['oauth_token'],
-        cfg.key['oauth_token_secret'])
-    for ticker in ticker_list_condensed:
-        if not market_open:
-            break
-        # check if market still open
-        cur_time = datetime.now()
-        hour = cur_time.hour
-        if hour >= 16:
-            market_open = False
-            break
+    try:
+        auth = OAuth1Session(
+            cfg.key['consumer_key'],
+            cfg.key['consumer_secret'],
+            cfg.key['oauth_token'],
+            cfg.key['oauth_token_secret'])
+        for ticker in ticker_list_condensed:
+            if not market_open:
+                break
+            # check if market still open
+            cur_time = datetime.now()
+            hour = cur_time.hour
+            if hour >= 16:
+                market_open = False
+                break
 
-        # select stocks to suggest
-        temp_url = url + ticker
-        try:
-            time.sleep(1)
-            r = auth.get(temp_url)
-            json_result = r.json()
-            ask = float(json_result['response']['quotes']['quote']['ask'])
-            low = float(json_result['response']['quotes']['quote']['wk52lo'])
-            rate_from_low = (ask - low) / low
-            if rate_from_low < line:
-                # send email to buy stock
-                stocks_bought[ticker] = ask
-                smtp_server = "smtp.gmail.com"
-                port = 587
-                sender = cfg.email['receiver']
-                receiver = cfg.email['receiver']
-                password = cfg.email['password']
-                message = 'Buy ' + ticker + ' at ' + str(ask) + ' (' \
-                        + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
-                try:
-                    server = smtplib.SMTP(smtp_server, port)
-                    server.starttls()
-                    server.login(sender, password)
-                    server.sendmail(sender, receiver, message)
-                    ticker_list_condensed.remove(ticker)
-                except Exception as error:
-                    print('ERROR: ', error)
-        except Exception as error:
-            print('ERROR: ', error)
-
-        #check to sell
-        try: 
-            owned_url = 'https://api.tradeking.com/v1/accounts.json'
-            holdings = {}
-            request = auth.get(owned_url)
-            profile = request.json()
-            info = profile['response']['accounts']['accountsummary']
-            stocks_owned = []
-            for item in info:
-                if item['account'] == cfg.key['account']:
-                    stocks_owned.append(item['accountholdings']['holding'])
-                    for holding in stocks_owned:
-                        for item in holding: 
-                            if item['displaydata']['symbol'] not in sym_ign:
-                                holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
-            for key, value in holdings.items():
-                rate = (value[0] - value[1]) / value[0]
-                if (rate >= sellTop or rate <= sellBottom):
-                    #send email to sell stock
-                    #stocks_bought.pop(key)
+            # select stocks to suggest
+            temp_url = url + ticker
+            try:
+                time.sleep(1)
+                r = auth.get(temp_url)
+                json_result = r.json()
+                ask = float(json_result['response']['quotes']['quote']['ask'])
+                low = float(json_result['response']['quotes']['quote']['wk52lo'])
+                rate_from_low = (ask - low) / low
+                if rate_from_low < line:
+                    # send email to buy stock
+                    stocks_bought[ticker] = ask
                     smtp_server = "smtp.gmail.com"
                     port = 587
                     sender = cfg.email['receiver']
                     receiver = cfg.email['receiver']
                     password = cfg.email['password']
-                    message = 'Sell ' + key + ' at ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
+                    message = 'Buy ' + ticker + ' at ' + str(ask) + ' (' \
+                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
                     server = smtplib.SMTP(smtp_server, port)
                     server.starttls()
                     server.login(sender, password)
                     server.sendmail(sender, receiver, message)
-                    ticker_list_condensed.append(key)
-                    break
-        except Exception as error:
-            print('ERROR: ', error)
+                    ticker_list_condensed.remove(ticker)
+            except Exception as error:
+                print('ERROR: ', error)
+
+            #check to sell
+                owned_url = 'https://api.tradeking.com/v1/accounts.json'
+                holdings = {}
+                request = auth.get(owned_url)
+                profile = request.json()
+                info = profile['response']['accounts']['accountsummary']
+                stocks_owned = []
+                for item in info:
+                    if item['account'] == cfg.key['account']:
+                        stocks_owned.append(item['accountholdings']['holding'])
+                        for holding in stocks_owned:
+                            for item in holding: 
+                                if item['displaydata']['symbol'] not in sym_ign:
+                                    holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+                for key, value in holdings.items():
+                    rate = (value[0] - value[1]) / value[0]
+                    if (rate >= sellTop or rate <= sellBottom):
+                        #send email to sell stock
+                        #stocks_bought.pop(key)
+                        smtp_server = "smtp.gmail.com"
+                        port = 587
+                        sender = cfg.email['receiver']
+                        receiver = cfg.email['receiver']
+                        password = cfg.email['password']
+                        message = 'Sell ' + key + ' at ' + str(value[0]) + ' (' \
+                                + str(round(rate, 4) * 100) + '% from bought)'
+                        server = smtplib.SMTP(smtp_server, port)
+                        server.starttls()
+                        server.login(sender, password)
+                        server.sendmail(sender, receiver, message)
+                        ticker_list_condensed.append(key)
+                        break
+    except Exception as error:
+        print('ERROR: ', error)
 print('complete')
