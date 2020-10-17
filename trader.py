@@ -94,7 +94,7 @@ while market_open:
                 ask = float(json_result['response']['quotes']['quote']['ask'])
                 low = float(json_result['response']['quotes']['quote']['wk52lo'])
                 rate_from_low = (ask - low) / low
-                if rate_from_low < line and low != 0 and rate_from_low != -100:
+                if rate_from_low < line and low != 0 and rate_from_low != -1:
                     # send email to buy stock
                     stocks_bought[ticker] = ask
                     smtp_server = "smtp.gmail.com"
