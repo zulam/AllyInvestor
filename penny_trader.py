@@ -146,18 +146,19 @@ while True:
                     r = auth.get(temp_url)
                     json_result = r.json()
                     ask = float(json_result['response']['quotes']['quote']['ask'])
-                    low = float(json_result['response']['quotes']['quote']['wk52lo'])
-                    if low == 0:
-                        low = .001
-                    rate_from_low = (ask - low) / low
-                    if rate_from_low < rate_lim and low != 0 and rate_from_low != -1:
-                        # send email to buy stock
-                        message = 'Buy ' + ticker + ' at ' + str(ask) + ' (' \
-                                + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
-                        stocks_bought[ticker] = ask
-                        sendEmail(message)
-                        #ticker_list_condensed.remove(ticker)
-                        penny_list.remove(ticker)
+                    if ask >= .01:
+                        low = float(json_result['response']['quotes']['quote']['wk52lo'])
+                        if low == 0:
+                            low = .001
+                        rate_from_low = (ask - low) / low
+                        if rate_from_low < rate_lim and low != 0 and rate_from_low != -1:
+                            # send email to buy stock
+                            message = 'Buy ' + ticker + ' at ' + str(ask) + ' (' \
+                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
+                            stocks_bought[ticker] = ask
+                            sendEmail(message)
+                            #ticker_list_condensed.remove(ticker)
+                            penny_list.remove(ticker)
                 except Exception as error:
                     print('ERROR: ', error)
         except Exception as error:
