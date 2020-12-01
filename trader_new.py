@@ -48,6 +48,7 @@ def sendEmail(message):
             print(e)
 
 ticker_list_condensed = []
+exclude = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
 while True:
@@ -81,6 +82,8 @@ while True:
     ctr = 0
     price_max = 1
     price_min = .001
+    non_penny_min = 1
+    non_penny_max = 5
     try:
         auth = OAuth1Session(
             cfg.key['consumer_key'],
@@ -93,6 +96,7 @@ while True:
     # filter out expensive stocks only when market is closed
     if clockJson == 'close' and datetime.now().hour <= 5:
         ticker_list_condensed.clear()
+        exclude.clear()
         # penny_file = open(cfg.file['penny_list'])
         # for line in penny_file:
         #     ticker = line.strip()
@@ -115,9 +119,9 @@ while True:
                 time.sleep(1)
                 r = auth.get(temp_url)
                 json_result = r.json()
-                ask_str = json_result['response']['quotes']['quote']['adp_100']
-                ask = float(ask_str) if ask_str != '' else 0
-                if ask <= price_max and ask != 0 and ask >= price_min:
+                avg_str = json_result['response']['quotes']['quote']['adp_100']
+                avg = float(avg_str) if avg_str != '' else 0
+                if (avg <= price_max and avg != 0 and avg >= price_min) or (avg <= non_penny_max and avg >= non_penny_min):
                     ticker_list_condensed.append(ticker)
                     print(ticker)
                     ctr += 1
@@ -142,6 +146,8 @@ while True:
             for line in mas_file:
                 master_list.append(line.strip())
             for ticker in master_list: #ticker_list_condensed:
+                if ticker in exclude:
+                    continue
                 # select stocks to suggest
                 low = 0.0
                 hi = 0.0
@@ -163,6 +169,7 @@ while True:
                     stocks_bought[ticker] = ask
                     sendEmail(message)
                     master_list.remove(ticker)
+                    exclude.append(ticker)
                     continue
                 if hi == 0 or ask <= 5:
                     continue
@@ -174,6 +181,7 @@ while True:
                     stocks_bought[ticker] = ask
                     sendEmail(message)
                     master_list.remove(ticker)
+                    exclude.append(ticker)
         except Exception as error:
             print('ERROR: ', error)
     print('complete')
