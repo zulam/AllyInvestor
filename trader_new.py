@@ -51,7 +51,8 @@ ticker_list_condensed = []
 exclude = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
-while True:
+running = True
+while running:
     #clock
     time.sleep(1)
     try:
@@ -184,4 +185,7 @@ while True:
                     exclude.append(ticker)
         except Exception as error:
             print('ERROR: ', error)
-    print('complete')
+    print('cycle done')
+    if clockJson == 'after':
+        running = False
+print("complete") 
