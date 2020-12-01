@@ -161,7 +161,7 @@ while True:
                     sendEmail(message)
                     master_list.remove(ticker)
                     continue
-                if hi == 0:
+                if hi == 0 or ask <= 5:
                     continue
                 rate_from_high = (hi - ask) / hi
                 if rate_from_high < rate_lim and hi != 0 and rate_from_high != -1:
