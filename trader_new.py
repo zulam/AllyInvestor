@@ -77,7 +77,6 @@ while running:
                 continue
             ticker_list.append(line.split(',')[0].replace('"', ''))
             tickerCtr += 1
-        print('pre cycle done')
 
     # initialize
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
