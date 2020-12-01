@@ -77,6 +77,7 @@ while running:
                 continue
             ticker_list.append(line.split(',')[0].replace('"', ''))
             tickerCtr += 1
+        print('pre cycle done')
 
     # initialize
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
@@ -132,6 +133,7 @@ while running:
         for ticker in ticker_list_condensed:
             f.write(ticker + '\n')
         f.close()
+        print('open cycle done')
         
     # market has opened
     if clockJson == 'open':
@@ -185,7 +187,8 @@ while running:
                     exclude.append(ticker)
         except Exception as error:
             print('ERROR: ', error)
-    print('cycle done')
+        print('open cycle done')
     if clockJson == 'after':
         running = False
+        print('after cycle done')
 print("complete") 
