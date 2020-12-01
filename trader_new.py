@@ -66,9 +66,11 @@ while True:
         stocks_bought = {}
         sym_ign = ['D', 'FNCL', 'GLD', 'IEFA', 'ILTB' , 'OKE', 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
         tickerCtr = 0
-        master_file = open(cfg.file['master_file']) 
-        for line in master_file:
-            ticker_list.append(line.strip())
+        company_list = open(cfg.file['company_list']) 
+        for line in company_list:
+            if line == '"Symbol","Name","LastSale","MarketCap","IPOyear","Sector","industry","Summary Quote",\n':
+                continue
+            ticker_list.append(line.split(',')[0].replace('"', ''))
             tickerCtr += 1
 
     # initialize
@@ -88,22 +90,22 @@ while True:
     # filter out expensive stocks only when market is closed
     if clockJson == 'close' and datetime.now().hour <= 5:
         ticker_list_condensed.clear()
-        penny_file = open(cfg.file['penny_list'])
-        for line in penny_file:
-            ticker = line.strip()
-            temp_url = url + ticker
-            try:
-                time.sleep(1)
-                r = auth.get(temp_url)
-                json_result = r.json()
-                ask_str = json_result['response']['quotes']['quote']['adp_100']
-                ask = float(ask_str) if ask_str != '' else 0
-                if ask <= price_max and ask != 0 and ask >= price_min:
-                    ticker_list_condensed.append(line.strip())
-                    print(ticker)
-                    ctr += 1
-            except Exception as error:
-                print(error)
+        # penny_file = open(cfg.file['penny_list'])
+        # for line in penny_file:
+        #     ticker = line.strip()
+        #     temp_url = url + ticker
+        #     try:
+        #         time.sleep(1)
+        #         r = auth.get(temp_url)
+        #         json_result = r.json()
+        #         ask_str = json_result['response']['quotes']['quote']['adp_100']
+        #         ask = float(ask_str) if ask_str != '' else 0
+        #         if ask <= price_max and ask != 0 and ask >= price_min:
+        #             ticker_list_condensed.append(line.strip())
+        #             print(ticker)
+        #             ctr += 1
+        #     except Exception as error:
+        #         print(error)
         for ticker in ticker_list:
             temp_url = url + ticker
             try:
@@ -118,8 +120,7 @@ while True:
                     ctr += 1
             except Exception as error:
                 print(error)
-            clock_ctr += 1
-        f = open("tickers_" + datetime.now().month + "-" + datetime.now().day + "-" + datetime.now().year + ".txt", "w")
+        f = open("tickers_" + str(datetime.now().month) + "-" + str(datetime.now().day) + "-" + str(datetime.now().year) + ".txt", "w")
         for ticker in ticker_list_condensed:
             f.write(ticker + '\n')
         f.close()
