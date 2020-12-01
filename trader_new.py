@@ -53,13 +53,16 @@ rate_lim = .05
 while True:
     #clock
     time.sleep(1)
-    auth = OAuth1Session(
-        cfg.key['consumer_key'],
-        cfg.key['consumer_secret'],
-        cfg.key['oauth_token'],
-        cfg.key['oauth_token_secret'])
-    res = auth.get(marketClockUrl)
-    clockJson = res.json()['response']['status']['current']
+    try:
+        auth = OAuth1Session(
+            cfg.key['consumer_key'],
+            cfg.key['consumer_secret'],
+            cfg.key['oauth_token'],
+            cfg.key['oauth_token_secret'])
+        res = auth.get(marketClockUrl)
+        clockJson = res.json()['response']['status']['current']
+    except Exception as e:
+        print(e)
     # getting tickers
     if clockJson != 'pre':
         ticker_list = []
