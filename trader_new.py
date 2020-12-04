@@ -42,6 +42,8 @@ def fillCondensed():
                     req_lim += 100 
                 except Exception as e:
                     print(e)
+                ctr += 1
+                continue
             if ctr == req_lim - 100:
                 url += ticker
             else:
@@ -143,7 +145,8 @@ def checkGains():
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:
                 print(e)
-
+            ctr += 1
+            continue   
         if ctr == req_lim - 100:
             url += ticker
         else:
@@ -197,6 +200,8 @@ def checkHiLo():
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
             except Exception as e:
                 print(e)
+            ctr += 1
+            continue
         if ctr == req_lim - 100:
             url += ticker
         else:
