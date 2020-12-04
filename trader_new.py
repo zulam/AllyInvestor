@@ -268,7 +268,9 @@ while running:
             for line in company_list:
                 if line == '"Symbol","Name","LastSale","MarketCap","IPOyear","Sector","industry","Summary Quote",\n':
                     continue
-                ticker_list.append(line.split(',')[0].replace('"', ''))
+                ticker = line.split(',')[0].replace('"', '')
+                if len(ticker) <= 4:
+                    ticker_list.append(line.split(',')[0].replace('"', ''))
     except Exception as e:
         print(e)
     
