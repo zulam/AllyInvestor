@@ -170,6 +170,7 @@ while running:
             cfg.key['oauth_token'],
             cfg.key['oauth_token_secret'])
         res = auth.get(marketClockUrl)
+        time.sleep(1)
         clockJson = res.json()['response']['status']['current']
     except Exception as e:
         print(e)
