@@ -7,7 +7,6 @@ import requests
 import smtplib
 import time
 
-
 # initialize
 email_queue = []
 email_sent = []
