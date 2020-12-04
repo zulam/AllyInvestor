@@ -229,21 +229,22 @@ def checkHiLo():
         print(e)
 
 def sendEmail(message):
-    if datetime.now().hour >= 6 and datetime.now().hour <= 22:
-        try:
-            smtp_server = "smtp.gmail.com"
-            port = 587
-            sender = cfg.email['sender']
-            receiver = ", ".join(cfg.email['receivers'])
-            password = cfg.email['password']
-            server = smtplib.SMTP(smtp_server, port)
-            server.starttls()
-            server.login(sender, password)
-            server.sendmail(sender, receiver, message)
-        except Exception as e:
-            print(e)
-    else:
-        email_queue.append(message)
+    if len(message) > 10:
+        if datetime.now().hour >= 6 and datetime.now().hour <= 22:
+            try:
+                smtp_server = "smtp.gmail.com"
+                port = 587
+                sender = cfg.email['sender']
+                receiver = ", ".join(cfg.email['receivers'])
+                password = cfg.email['password']
+                server = smtplib.SMTP(smtp_server, port)
+                server.starttls()
+                server.login(sender, password)
+                server.sendmail(sender, receiver, message)
+            except Exception as e:
+                print(e)
+        else:
+            email_queue.append(message)
 
 while running:
     # begin cycle
