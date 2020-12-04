@@ -83,6 +83,7 @@ def checkNews():
     tod = datetime.now()
     d = timedelta(1)
     lim = tod - d
+    message = '\n'
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
             try:
@@ -93,9 +94,7 @@ def checkNews():
                 for article in articles['article']:
                     if parse(article['date']) >= lim:
                         if article['headline'] not in exclude_news:
-                            message = '\n'
-                            message += article['date'] + ': ' + article['headline'] 
-                            sendEmail(message)
+                            message += '\n' + article['date'] + ': ' + article['headline'] 
                             exclude_news.append(article['headline'])
                 req_lim += 100 
                 newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -114,14 +113,14 @@ def checkNews():
         for article in articles['article']:
             if parse(article['date']) >= lim:
                 if article['headline'] not in exclude_news:
-                    message = '\n'
-                    message += article['date'] + ': ' + article['headline'] 
-                    sendEmail(message)
+                    message += '\n' + article['date'] + ': ' + article['headline'] 
                     exclude_news.append(article['headline'])
+        sendEmail(message)
     except Exception as e:
         print(e)
 
 def checkGains():
+    message = '\n'
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
     req_lim = 100
@@ -137,9 +136,8 @@ def checkGains():
                     sym = quote['symbol']
                     if sym not in exclude_gains:
                         if percent_change >= .5 or percent_change <= -.5:
-                            message = '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
+                            message += '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
                                         + str(round(float(percent_change), 4) * 100) + '% gain since last close)'
-                            sendEmail(message)
                             exclude_gains.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
@@ -161,10 +159,10 @@ def checkGains():
             sym = quote['symbol']
             if sym not in exclude_gains:
                 if percent_change >= 50:
-                    message = '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
+                    message += '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
                                 + str(round(float(quote['pchg']), 4)) + '% gain since last close)'
-                    sendEmail(message)
                     exclude_gains.append(sym)
+        sendEmail(message)            
     except Exception as e:
         print(e)
 
@@ -172,6 +170,7 @@ def checkHiLo():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
     req_lim = 100
+    message = '\n'
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
             try:
@@ -189,12 +188,10 @@ def checkHiLo():
                             low = .001
                         rate_from_low = (ask - low) / low
                         approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                        message = '\n'
                         if approach_low:
                             # send email to buy stock
                             message += '\n' + 'Buy ' + sym + ' at ' + str(ask) + ' (' \
                                 + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
-                            sendEmail(message)
                             exclude_hilo.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
@@ -222,13 +219,12 @@ def checkHiLo():
                     low = .001
                 rate_from_low = (ask - low) / low
                 approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                message = '\n'
                 if approach_low:
                     # send email to buy stock
                     message += '\n' + 'Buy ' + sym + ' at ' + str(ask) + ' (' \
                         + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
-                    sendEmail(message)
                     exclude_hilo.append(sym)
+        sendEmail(message)            
     except Exception as e:
         print(e)
 
