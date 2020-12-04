@@ -71,11 +71,8 @@ def checkNews():
     lim = tod - d
     try:
         res = auth.get(newsUrl)
-        json_news= res.json()
-    except Exception as e:
-        print(e)
-    time.sleep(1)
-    try:
+        json_news = res.json()
+        time.sleep(1)
         articles = json_news['response']['articles']
         for article in articles['article']:
             if parse(article['date']) >= lim:
@@ -99,11 +96,8 @@ def checkGains():
     try:
         r = auth.get(url)
         json_result = r.json()
-    except Exception as e:
-        print(e)
-    time.sleep(1)
-    for quote in json_result['response']['quotes']['quote']:
-        try:
+        time.sleep(1)
+        for quote in json_result['response']['quotes']['quote']:
             percent_change = float(quote['pchg'])
             sym = quote['symbol']
             if sym not in exclude_gains:
@@ -112,8 +106,8 @@ def checkGains():
                                 + str(round(float(quote['pchg']), 4)) + '% gain since last close)'
                     sendEmail(message)
                     exclude_gains.append(sym)
-        except Exception as e:
-            print(e)
+    except Exception as e:
+        print(e)
 
 def checkHiLo():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
@@ -127,12 +121,9 @@ def checkHiLo():
     try: 
         r = auth.get(url)
         json_result = r.json()
-    except Exception as e:
-            print(e)
-    time.sleep(1)
-    for quote in json_result['response']['quotes']['quote']:
-        low = 0.0
-        try:
+        time.sleep(1)
+        for quote in json_result['response']['quotes']['quote']:
+            low = 0.0
             sym = quote['symbol']
             if sym not in exclude_hilo:
                 ask = float(quote['ask'])
@@ -149,8 +140,8 @@ def checkHiLo():
                         + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
                     sendEmail(message)
                     exclude_hilo.append(sym)
-        except Exception as e:
-            print(e)
+    except Exception as e:
+        print(e)
 
 def sendEmail(message):
     if datetime.now().hour >= 6 and datetime.now().hour <= 22:
