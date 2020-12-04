@@ -17,7 +17,7 @@ exclude_hilo = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
 running = True
-price_max = 1
+price_max = 5
 price_min = .001
 
 def fillCondensed():
