@@ -24,28 +24,46 @@ def fillCondensed():
     if len(ticker_list_condensed) == 0:
         url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
         ctr = 0
+        req_lim = 100
         for ticker in ticker_list:
-            if ctr == 0:
+            if ctr == req_lim:
+                try:
+                    r = auth.get(url)
+                    json_result = r.json()
+                    time.sleep(1)
+                    for quote in json_result['response']['quotes']['quote']:
+                        ask_str = quote['ask']
+                        sym = quote['symbol']
+                        ask = float(ask_str) if ask_str != '' else 0
+                        if ask <= price_max and ask != 0 and ask >= price_min:
+                            ticker_list_condensed.append(sym)
+                            print(sym)
+                    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
+                    req_lim += 100 
+                except Exception as e:
+                    print(e)
+            if ctr == req_lim - 100:
                 url += ticker
-                ctr += 1
             else:
                 url += ',' + ticker
+            ctr += 1
         try:
             r = auth.get(url)
             json_result = r.json()
             time.sleep(1)
             for quote in json_result['response']['quotes']['quote']:
                 ask_str = quote['ask']
+                sym = quote['symbol']
                 ask = float(ask_str) if ask_str != '' else 0
                 if ask <= price_max and ask != 0 and ask >= price_min:
-                    ticker_list_condensed.append(ticker)
-                    print(ticker)
-            f = open(cfg.file['master_file'], "w")
-            for ticker in ticker_list_condensed:
-                f.write(ticker + '\n')
-            f.close()
+                    ticker_list_condensed.append(sym)
+                    print(sym)
         except Exception as e:
             print(e)
+        f = open(cfg.file['master_file'], "w")
+        for ticker in ticker_list_condensed:
+            f.write(ticker + '\n')
+        f.close()
 
 def readFromMasIfEmpty():
     try:
@@ -208,12 +226,13 @@ while running:
                 except Exception as e:
                     print(e)
         try:
+            fillCondensed()
             readFromMasIfEmpty()
             checkNews()
         except Exception as e:
             print(e)
         print('close cycle done')
-    elif clockJson == 'close' and (datetime.now().hour >= 22 or datetime.now().hour <= 5):
+    elif clockJson == 'close' and datetime.now().hour >= 22:
         running = False
         print('close cycle done')
 
