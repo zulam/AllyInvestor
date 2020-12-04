@@ -77,16 +77,33 @@ def readFromMasIfEmpty():
 def checkNews():
     newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
     ctr = 0
-    for ticker in ticker_list_condensed:
-        if ctr == 0:
-            newsUrl += ticker
-            ctr += 1
-        else:
-            newsUrl += ',' + ticker
-    newsUrl += '&maxhits=10'
+    req_lim = 100
     tod = datetime.now()
     d = timedelta(1)
     lim = tod - d
+    for ticker in ticker_list_condensed:
+        if ctr == req_lim:
+            try:
+                res = auth.get(newsUrl)
+                json_news = res.json()
+                time.sleep(1)
+                articles = json_news['response']['articles']
+                for article in articles['article']:
+                    if parse(article['date']) >= lim:
+                        if article['headline'] not in exclude_news:
+                            message = '\n'
+                            message += article['date'] + ': ' + article['headline'] 
+                            sendEmail(message)
+                            exclude_news.append(article['headline'])
+                req_lim += 100 
+                newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
+            except Exception as e:
+                print(e)
+        if ctr == req_lim - 100:
+            newsUrl += ticker
+        else:
+            newsUrl += ',' + ticker
+        ctr += 1  
     try:
         res = auth.get(newsUrl)
         json_news = res.json()
@@ -105,12 +122,33 @@ def checkNews():
 def checkGains():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
+    req_lim = 100
     for ticker in ticker_list_condensed:
-        if ctr == 0:
+        if ctr == req_lim:
+            try:
+                r = auth.get(url)
+                json_result = r.json()
+                time.sleep(1)
+                for quote in json_result['response']['quotes']['quote']:
+                    #percent_change = float(quote['pchg'])
+                    percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
+                    sym = quote['symbol']
+                    if sym not in exclude_gains:
+                        if percent_change >= .5 or percent_change <= -.5:
+                            message = '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
+                                        + str(round(float(percent_change), 4) * 100) + '% gain since last close)'
+                            sendEmail(message)
+                            exclude_gains.append(sym)
+                req_lim += 100 
+                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
+            except Exception as e:
+                print(e)
+
+        if ctr == req_lim - 100:
             url += ticker
-            ctr += 1
         else:
             url += ',' + ticker
+        ctr += 1
     try:
         r = auth.get(url)
         json_result = r.json()
@@ -130,12 +168,40 @@ def checkGains():
 def checkHiLo():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
+    req_lim = 100
     for ticker in ticker_list_condensed:
-        if ctr == 0:
+        if ctr == req_lim:
+            try:
+                r = auth.get(url)
+                json_result = r.json()
+                time.sleep(1)
+                for quote in json_result['response']['quotes']['quote']:
+                    low = 0.0
+                    sym = quote['symbol']
+                    if sym not in exclude_hilo:
+                        ask = float(quote['ask'])
+                        if ask >= .01:
+                            low = float(quote['wk52lo'])
+                        if low == 0:
+                            low = .001
+                        rate_from_low = (ask - low) / low
+                        approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+                        message = '\n'
+                        if approach_low:
+                            # send email to buy stock
+                            message += '\n' + 'Buy ' + sym + ' at ' + str(ask) + ' (' \
+                                + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
+                            sendEmail(message)
+                            exclude_hilo.append(sym)
+                req_lim += 100 
+                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+            except Exception as e:
+                print(e)
+        if ctr == req_lim - 100:
             url += ticker
-            ctr += 1
         else:
             url += ',' + ticker
+        ctr += 1
     try: 
         r = auth.get(url)
         json_result = r.json()
