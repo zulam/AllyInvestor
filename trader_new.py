@@ -217,25 +217,16 @@ while running:
         running = False
         print('close cycle done')
 
-    # pre market, check news
-    if clockJson == 'pre':
+    # pre market, open, or after, check all
+    if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
         try: 
-            readFromMasIfEmpty()
-            checkNews()
-        except Exception as e:
-            print(e)
-        print('pre cycle done')
-
-    # market has opened
-    if clockJson == 'open':
-        try:
             readFromMasIfEmpty()
             checkGains()
             checkHiLo()
             checkNews()
         except Exception as e:
             print(e)
-        print('open cycle done')
+        print('pre / open cycle done')
 
 # finished running for the day        
 print("complete") 
