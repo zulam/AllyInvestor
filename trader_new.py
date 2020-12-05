@@ -14,12 +14,51 @@ ticker_list_condensed = []
 exclude_news = []
 exclude_gains = []
 exclude_hilo = []
+exclude_owned = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
 running = True
 price_max = 5
 price_min = .001
+sellTop = .2
+sellBottom = -.05
+sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 
+def checkToSell():
+    message = '\n'
+    owned_url = 'https://api.tradeking.com/v1/accounts.json'
+    holdings = {}
+    stocks_owned = []
+    try:
+        request = auth.get(owned_url)
+        profile = request.json()
+        info = profile['response']['accounts']['accountsummary']
+    except Exception as e:
+        print(e)
+    try:
+        for item in info:
+            if item['account'] == cfg.account:
+                stocks_owned.append(item['accountholdings']['holding'])
+                for holding in stocks_owned:
+                    for item in holding: 
+                        if item['displaydata']['symbol'] not in sym_ign:
+                            holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+    except Exception as e:
+        print(e)
+    try:   
+        for key, value in holdings.items():
+            if key not in exclude_owned:
+                orig = float(value[1].replace('$','').replace(',',''))
+                curr = float(value[0].replace('$','').replace(',',''))
+                rate = (curr - orig) / orig
+                if (rate >= sellTop or rate <= sellBottom):
+                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+                            + str(round(rate, 4) * 100) + '% from bought)'
+                    exclude_owned.append(key)
+        sendEmail(message)
+    except Exception as e:
+        print(e)
+    
 def fillCondensed():
     if len(ticker_list_condensed) == 0:
         url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
@@ -94,7 +133,7 @@ def checkNews():
                 for article in articles['article']:
                     if parse(article['date']) >= lim:
                         if article['headline'] not in exclude_news:
-                            message += '\n' + article['date'] + ': ' + article['headline'] 
+                            message += '\n\n' + article['date'] + ': ' + article['headline'] 
                             exclude_news.append(article['headline'])
                 req_lim += 100 
                 newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -113,7 +152,7 @@ def checkNews():
         for article in articles['article']:
             if parse(article['date']) >= lim:
                 if article['headline'] not in exclude_news:
-                    message += '\n' + article['date'] + ': ' + article['headline'] 
+                    message += '\n\n' + article['date'] + ': ' + article['headline'] 
                     exclude_news.append(article['headline'])
         sendEmail(message)
     except Exception as e:
@@ -133,11 +172,15 @@ def checkGains():
                 for quote in json_result['response']['quotes']['quote']:
                     #percent_change = float(quote['pchg'])
                     percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
+                    vol = float(quote['vl'])
+                    avg_vol = float(quote['adv_30'])
+                    vol_chg = (vol - avg_vol) / avg_vol
                     sym = quote['symbol']
                     if sym not in exclude_gains:
-                        if percent_change >= .5 or percent_change <= -.5:
-                            message += '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
-                                        + str(round(float(percent_change), 4) * 100) + '% gain since last close)'
+                        if (percent_change >= .5 or percent_change <= -.5) and vol_chg >= 1:
+                            message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                        + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                                        + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
                             exclude_gains.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
@@ -159,8 +202,9 @@ def checkGains():
             sym = quote['symbol']
             if sym not in exclude_gains:
                 if percent_change >= 50:
-                    message += '\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + ' (' \
-                                + str(round(float(quote['pchg']), 4)) + '% gain since last close)'
+                    message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                            + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                            + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
                     exclude_gains.append(sym)
         sendEmail(message)            
     except Exception as e:
@@ -179,6 +223,9 @@ def checkHiLo():
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
                     low = 0.0
+                    vol = float(quote['vl'])
+                    avg_vol = float(quote['adv_30'])
+                    vol_chg = (vol - avg_vol) / avg_vol
                     sym = quote['symbol']
                     if sym not in exclude_hilo:
                         ask = float(quote['ask'])
@@ -188,10 +235,11 @@ def checkHiLo():
                             low = .001
                         rate_from_low = (ask - low) / low
                         approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                        if approach_low:
+                        if approach_low and vol_chg >= 1:
                             # send email to buy stock
-                            message += '\n' + 'Buy ' + sym + ' at ' + str(ask) + ' (' \
-                                + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
+                            message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
+                                    + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
                             exclude_hilo.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
@@ -221,8 +269,9 @@ def checkHiLo():
                 approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
                 if approach_low:
                     # send email to buy stock
-                    message += '\n' + 'Buy ' + sym + ' at ' + str(ask) + ' (' \
-                        + str(round(rate_from_low, 4) * 100) + '% from 52 week low)'
+                    message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
+                            + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
                     exclude_hilo.append(sym)
         sendEmail(message)            
     except Exception as e:
@@ -246,6 +295,7 @@ def sendEmail(message):
         else:
             email_queue.append(message)
 
+sendEmail('Program has started running for the day') 
 while running:
     # begin cycle
     time.sleep(1)
@@ -265,7 +315,6 @@ while running:
     try:
         if clockJson != 'pre':
             ticker_list = []
-            sym_ign = ['D', 'FNCL', 'GLD', 'IEFA', 'ILTB' , 'OKE', 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
             company_list = open(cfg.file['company_list']) 
             for line in company_list:
                 if line == '"Symbol","Name","LastSale","MarketCap","IPOyear","Sector","industry","Summary Quote",\n':
@@ -275,7 +324,7 @@ while running:
                     ticker_list.append(line.split(',')[0].replace('"', ''))
     except Exception as e:
         print(e)
-    
+
     # late night close, filter out stocks and check news
     if clockJson == 'close' and datetime.now().hour <= 5:
         try:
@@ -309,6 +358,7 @@ while running:
     # pre market, open, or after, check all
     if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
         try: 
+            checkToSell()
             readFromMasIfEmpty()
             checkGains()
             checkHiLo()
@@ -317,5 +367,6 @@ while running:
             print(e)
         print('pre / open cycle done')
 
-# finished running for the day        
+# finished running for the day      
+sendEmail('Program has finished running for the day')  
 print("complete") 
