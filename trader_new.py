@@ -23,6 +23,33 @@ price_min = .001
 sellTop = .2
 sellBottom = -.05
 sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
+watchlist_id = 'WATCHLIST'
+
+def createWatchlist():
+    try:
+        url = 'https://api.tradeking.com/v1/watchlists.json'
+        body = {'id': watchlist_id}
+        auth.post(url, body)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+
+def addToWatchlist(ticker):
+    try:
+        url = 'https://api.tradeking.com/v1/watchlists/' + watchlist_id + '/symbols.json'
+        body = {'symbols': ticker}
+        auth.post(url, body)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+
+def deleteWatchlist():
+    try:
+        url = 'https://api.tradeking.com/v1/watchlists/' + watchlist_id + '.json'
+        auth.delete(url)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
 
 def checkToSell():
     message = '\n'
@@ -181,6 +208,7 @@ def checkGains():
                             message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                         + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
                                         + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                            addToWatchlist(sym)
                             exclude_gains.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
@@ -198,13 +226,17 @@ def checkGains():
         json_result = r.json()
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
-            percent_change = float(quote['pchg'])
+            percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
+            vol = float(quote['vl'])
+            avg_vol = float(quote['adv_30'])
+            vol_chg = (vol - avg_vol) / avg_vol
             sym = quote['symbol']
             if sym not in exclude_gains:
-                if percent_change >= 50:
+                if (percent_change >= .5 or percent_change <= -.5) and vol_chg >= 1:
                     message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                            + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                            + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                                + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                                + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                    addToWatchlist(sym)
                     exclude_gains.append(sym)
         sendEmail(message)            
     except Exception as e:
@@ -240,6 +272,7 @@ def checkHiLo():
                             message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                     + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
                                     + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                            addToWatchlist(sym)
                             exclude_hilo.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
@@ -258,6 +291,9 @@ def checkHiLo():
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
             low = 0.0
+            vol = float(quote['vl'])
+            avg_vol = float(quote['adv_30'])
+            vol_chg = (vol - avg_vol) / avg_vol
             sym = quote['symbol']
             if sym not in exclude_hilo:
                 ask = float(quote['ask'])
@@ -267,11 +303,12 @@ def checkHiLo():
                     low = .001
                 rate_from_low = (ask - low) / low
                 approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                if approach_low:
+                if approach_low and vol_chg >= 1:
                     # send email to buy stock
                     message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                             + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
                             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                    addToWatchlist(sym)
                     exclude_hilo.append(sym)
         sendEmail(message)            
     except Exception as e:
@@ -296,6 +333,12 @@ def sendEmail(message):
             email_queue.append(message)
 
 sendEmail('Program has started running for the day') 
+auth = OAuth1Session(
+    cfg.key['consumer_key'],
+    cfg.key['consumer_secret'],
+    cfg.key['oauth_token'],
+    cfg.key['oauth_token_secret'])
+createWatchlist()
 while running:
     # begin cycle
     time.sleep(1)
@@ -353,6 +396,7 @@ while running:
         print('close cycle done')
     elif clockJson == 'close' and datetime.now().hour >= 22:
         running = False
+        deleteWatchlist()
         print('close cycle done')
 
     # pre market, open, or after, check all
