@@ -284,7 +284,7 @@ def sendEmail(message):
                 smtp_server = "smtp.gmail.com"
                 port = 587
                 sender = cfg.email['sender']
-                receiver = ", ".join(cfg.email['receivers'])
+                receiver = cfg.email['receivers']
                 password = cfg.email['password']
                 server = smtplib.SMTP(smtp_server, port)
                 server.starttls()
