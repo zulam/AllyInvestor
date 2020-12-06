@@ -375,9 +375,6 @@ while running:
     except Exception as e:
         print(e)
 
-    checkToSell()
-    sell('SCHH', 1, 40.00)
-
     # getting tickers
     try:
         if clockJson != 'pre':
