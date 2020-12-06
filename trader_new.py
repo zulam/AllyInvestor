@@ -25,6 +25,22 @@ sellBottom = -.05
 sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 watchlist_id = 'WATCHLIST'
 
+def sell(ticker, quant, lim):
+    try:
+        message = '\n'
+        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
+        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="2" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
+        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
+        resp = auth.post(url, body)
+        if resp.status_code == 200:
+            message += 'Sell order placed at ' + ticker + ' at ' + str(lim) 
+        else:
+            message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
+        sendEmail(message)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+
 def createWatchlist():
     try:
         url = 'https://api.tradeking.com/v1/watchlists.json'
@@ -55,6 +71,8 @@ def checkToSell():
     message = '\n'
     owned_url = 'https://api.tradeking.com/v1/accounts.json'
     holdings = {}
+    last_price = {}
+    qty = {}
     stocks_owned = []
     try:
         request = auth.get(owned_url)
@@ -70,6 +88,8 @@ def checkToSell():
                     for item in holding: 
                         if item['displaydata']['symbol'] not in sym_ign:
                             holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+                            last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
+                            qty[item['displaydata']['symbol']] = item['displaydata']['qty']
     except Exception as e:
         print(e)
     try:   
@@ -81,6 +101,7 @@ def checkToSell():
                 if (rate >= sellTop or rate <= sellBottom):
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
+                    sell(key, qty[key], last_price[key].replace('$','').replace(',',''))
                     exclude_owned.append(key)
         sendEmail(message)
     except Exception as e:
@@ -353,6 +374,9 @@ while running:
         clockJson = res.json()['response']['status']['current']
     except Exception as e:
         print(e)
+
+    checkToSell()
+    sell('SCHH', 1, 40.00)
 
     # getting tickers
     try:
