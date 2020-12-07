@@ -17,7 +17,6 @@ exclude_hilo = []
 exclude_sold = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
-running = True
 price_max = 5
 price_min = .001
 sellTop = .2
@@ -269,7 +268,6 @@ def checkHiLo():
     ctr = 0
     req_lim = 100
     message = '\n'
-    vol_check = 1
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
             try:
@@ -278,9 +276,6 @@ def checkHiLo():
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
                     low = 0.0
-                    vol = float(quote['vl'])
-                    avg_vol = float(quote['adv_30'])
-                    vol_chg = (vol - avg_vol) / avg_vol
                     sym = quote['symbol']
                     if sym not in exclude_hilo:
                         ask = float(quote['ask'])
@@ -290,11 +285,10 @@ def checkHiLo():
                             low = .001
                         rate_from_low = (ask - low) / low
                         approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                        if approach_low and vol_chg >= vol_check:
+                        if approach_low:
                             # send email to buy stock
                             message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
-                                    + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low'
                             addToWatchlist(sym)
                             exclude_hilo.append(sym)
                 req_lim += 100 
@@ -314,9 +308,6 @@ def checkHiLo():
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
             low = 0.0
-            vol = float(quote['vl'])
-            avg_vol = float(quote['adv_30'])
-            vol_chg = (vol - avg_vol) / avg_vol
             sym = quote['symbol']
             if sym not in exclude_hilo:
                 ask = float(quote['ask'])
@@ -326,11 +317,10 @@ def checkHiLo():
                     low = .001
                 rate_from_low = (ask - low) / low
                 approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                if approach_low and vol_chg >= vol_check:
+                if approach_low:
                     # send email to buy stock
                     message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
-                            + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low'
                     addToWatchlist(sym)
                     exclude_hilo.append(sym)
         sendEmail(message)            
@@ -355,13 +345,19 @@ def sendEmail(message):
         else:
             email_queue.append(message)
 
-sendEmail('Program has started running for the day') 
-auth = OAuth1Session(
-    cfg.key['consumer_key'],
-    cfg.key['consumer_secret'],
-    cfg.key['oauth_token'],
-    cfg.key['oauth_token_secret'])
-createWatchlist()
+running = False
+while not running:
+    try:
+        sendEmail('Program has started running for the day') 
+        auth = OAuth1Session(
+            cfg.key['consumer_key'],
+            cfg.key['consumer_secret'],
+            cfg.key['oauth_token'],
+            cfg.key['oauth_token_secret'])
+        createWatchlist()
+        running = True
+    except Exception as e:
+        print(e)
 while running:
     # begin cycle
     time.sleep(1)
