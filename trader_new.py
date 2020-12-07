@@ -14,7 +14,7 @@ ticker_list_condensed = []
 exclude_news = []
 exclude_gains = []
 exclude_hilo = []
-exclude_owned = []
+exclude_sold = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
 running = True
@@ -24,22 +24,6 @@ sellTop = .2
 sellBottom = -.05
 sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 watchlist_id = 'WATCHLIST'
-
-def sell(ticker, quant, lim):
-    try:
-        message = '\n'
-        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
-        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="2" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
-        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
-        resp = auth.post(url, body)
-        if resp.status_code == 200:
-            message += 'Sell order placed at ' + ticker + ' at ' + str(lim) 
-        else:
-            message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
-        sendEmail(message)
-        time.sleep(1)
-    except Exception as e:
-        print(e)
 
 def createWatchlist():
     try:
@@ -63,6 +47,22 @@ def deleteWatchlist():
     try:
         url = 'https://api.tradeking.com/v1/watchlists/' + watchlist_id + '.json'
         auth.delete(url)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+
+def sell(ticker, quant, lim):
+    try:
+        message = '\n'
+        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
+        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="2" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
+        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
+        resp = auth.post(url, body)
+        if resp.status_code == 200:
+            message += 'Sell order placed for ' + ticker + ' at ' + str(lim) 
+        else:
+            message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
+        sendEmail(message)
         time.sleep(1)
     except Exception as e:
         print(e)
@@ -94,7 +94,7 @@ def checkToSell():
         print(e)
     try:   
         for key, value in holdings.items():
-            if key not in exclude_owned:
+            if key not in exclude_sold:
                 orig = float(value[1].replace('$','').replace(',',''))
                 curr = float(value[0].replace('$','').replace(',',''))
                 rate = (curr - orig) / orig
@@ -102,7 +102,7 @@ def checkToSell():
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
                     sell(key, qty[key], last_price[key].replace('$','').replace(',',''))
-                    exclude_owned.append(key)
+                    exclude_sold.append(key)
         sendEmail(message)
     except Exception as e:
         print(e)
@@ -211,6 +211,8 @@ def checkGains():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
     req_lim = 100
+    gain_check = .5
+    vol_check = 1
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
             try:
@@ -218,14 +220,13 @@ def checkGains():
                 json_result = r.json()
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
-                    #percent_change = float(quote['pchg'])
                     percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
                     vol = float(quote['vl'])
                     avg_vol = float(quote['adv_30'])
                     vol_chg = (vol - avg_vol) / avg_vol
                     sym = quote['symbol']
                     if sym not in exclude_gains:
-                        if (percent_change >= .5 or percent_change <= -.5) and vol_chg >= 1:
+                        if (percent_change >= gain_check or percent_change <= -gain_check) and vol_chg >= vol_check:
                             message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                         + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
                                         + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
@@ -253,7 +254,7 @@ def checkGains():
             vol_chg = (vol - avg_vol) / avg_vol
             sym = quote['symbol']
             if sym not in exclude_gains:
-                if (percent_change >= .5 or percent_change <= -.5) and vol_chg >= 1:
+                if (percent_change >= gain_check or percent_change <= -gain_check) and vol_chg >= vol_check:
                     message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                 + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
                                 + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
@@ -268,6 +269,7 @@ def checkHiLo():
     ctr = 0
     req_lim = 100
     message = '\n'
+    vol_check = 1
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
             try:
@@ -288,7 +290,7 @@ def checkHiLo():
                             low = .001
                         rate_from_low = (ask - low) / low
                         approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                        if approach_low and vol_chg >= 1:
+                        if approach_low and vol_chg >= vol_check:
                             # send email to buy stock
                             message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                     + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
@@ -324,7 +326,7 @@ def checkHiLo():
                     low = .001
                 rate_from_low = (ask - low) / low
                 approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                if approach_low and vol_chg >= 1:
+                if approach_low and vol_chg >= vol_check:
                     # send email to buy stock
                     message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                             + str(round(rate_from_low, 4) * 100) + '% from 52 week low \nVolume up ' \
