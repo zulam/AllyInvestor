@@ -276,11 +276,16 @@ def checkHiLo():
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
                     low = 0.0
+                    high = 0.0
+                    reward = 0.0
                     sym = quote['symbol']
                     if sym not in exclude_hilo:
                         ask = float(quote['ask'])
                         if ask >= .01:
-                            low = float(quote['wk52lo'])
+                            low = round(float(quote['wk52lo']), 4)
+                            high = round(float(quote['wk52hi']), 4)
+                            if low != 0 and high != 0:
+                                reward = ((high - low) / low) * 100
                         if low == 0:
                             low = .001
                         rate_from_low = (ask - low) / low
@@ -288,7 +293,7 @@ def checkHiLo():
                         if approach_low:
                             # send email to buy stock
                             message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low'
+                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low\n Reward: ' + str(reward) + '%'
                             addToWatchlist(sym)
                             exclude_hilo.append(sym)
                 req_lim += 100 
@@ -308,11 +313,16 @@ def checkHiLo():
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
             low = 0.0
+            high = 0.0
+            reward = 0.0
             sym = quote['symbol']
             if sym not in exclude_hilo:
                 ask = float(quote['ask'])
                 if ask >= .01:
                     low = float(quote['wk52lo'])
+                    high = round(float(quote['wk52hi']), 4)
+                    if low != 0 and high != 0:
+                        reward = ((high - low) / low) * 100
                 if low == 0:
                     low = .001
                 rate_from_low = (ask - low) / low
@@ -320,7 +330,7 @@ def checkHiLo():
                 if approach_low:
                     # send email to buy stock
                     message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low'
+                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low\n Reward: ' + str(reward) + '%'
                     addToWatchlist(sym)
                     exclude_hilo.append(sym)
         sendEmail(message)            
@@ -386,7 +396,7 @@ while running:
                     ticker_list.append(line.split(',')[0].replace('"', ''))
     except Exception as e:
         print(e)
-
+        
     # late night close, filter out stocks and check news
     if clockJson == 'close' and datetime.now().hour <= 5:
         try:
