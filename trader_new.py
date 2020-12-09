@@ -35,7 +35,7 @@ def begin() :
     except Exception as e:
         print(e)
     try:
-        cash_avail = info['accountbalance']['money']['cashavailableforwithdrawal']
+        cash_avail = float(info['accountbalance']['money']['cashavailable']) - float(info['accountbalance']['money']['unsettledfunds'])
         message = '\nProgram has begun.\nFunds available for trading: $' + str(cash_avail)
         sendEmail(message)
     except Exception as e:
