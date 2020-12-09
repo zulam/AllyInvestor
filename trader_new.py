@@ -19,10 +19,12 @@ marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
 price_max = 5
 price_min = .001
-sellTop = .2
+sellTop = .25
 sellBottom = -.05
 sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 watchlist_id = 'WATCHLIST'
+acct_val = 1000
+max_invest = acct_val / 20
 
 def createWatchlist():
     try:
@@ -49,6 +51,41 @@ def deleteWatchlist():
         time.sleep(1)
     except Exception as e:
         print(e)
+
+def buy(ticker, quant, lim):
+    try:
+        message = '\n'
+        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
+        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="1" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
+        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
+        resp = auth.post(url, body)
+        if resp.status_code == 200:
+            message += 'Buy order placed for ' + ticker + ' at ' + str(lim) 
+        else:
+            message += 'BUY ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
+        sendEmail(message)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+
+def checkToBuy():
+    owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
+    try:
+        request = auth.get(owned_url)
+        profile = request.json()
+        info = profile['response']
+    except Exception as e:
+        print(e)
+    try:
+        unsettled = info['accountbalance']['money']['unsettledfunds']
+        cash_avail = info['accountbalance']['money']['cashavailable']
+        if float(unsettled) < (acct_val / 3) and float(cash_avail) >= (acct_val * .66):
+            return True
+        else: 
+            return False
+    except Exception as e:
+        print(e)
+        return False
 
 def sell(ticker, quant, lim):
     try:
@@ -293,7 +330,10 @@ def checkHiLo():
                         if approach_low:
                             # send email to buy stock
                             message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low\n Reward: ' + str(reward) + '%'
+                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                            if checkToBuy():
+                                shares_to_buy = round(max_invest / ask)
+                                buy(sym, shares_to_buy, ask)
                             addToWatchlist(sym)
                             exclude_hilo.append(sym)
                 req_lim += 100 
@@ -330,7 +370,10 @@ def checkHiLo():
                 if approach_low:
                     # send email to buy stock
                     message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low\n Reward: ' + str(reward) + '%'
+                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                    if checkToBuy():
+                        shares_to_buy = round(max_invest / ask)
+                        buy(sym, shares_to_buy, ask)
                     addToWatchlist(sym)
                     exclude_hilo.append(sym)
         sendEmail(message)            
