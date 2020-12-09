@@ -455,17 +455,17 @@ while running:
     except Exception as e:
         print(e)
         
-    # late night close, filter out stocks and check news
-    if clockJson == 'close' and datetime.now().hour <= 5:
-        try:
-            fillCondensed()
-            checkNews()
-        except Exception as e:
-            print(e)
-        print('close cycle done')
+    # # late night close, filter out stocks and check news
+    # if clockJson == 'close' and datetime.now().hour <= 5:
+    #     try:
+    #         fillCondensed()
+    #         checkNews()
+    #     except Exception as e:
+    #         print(e)
+    #     print('close cycle done')
 
     # early morning close, ready to send emails
-    elif clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 22:
+    if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 18:
         if len(email_queue) > 0:
             for email in email_queue:
                 try:
@@ -481,7 +481,8 @@ while running:
         except Exception as e:
             print(e)
         print('close cycle done')
-    elif clockJson == 'close' and datetime.now().hour >= 22:
+    
+    elif clockJson == 'close' and datetime.now().hour >= 18:
         running = False
         deleteWatchlist()
         print('close cycle done')
@@ -499,5 +500,5 @@ while running:
         print('pre / open cycle done')
 
 # finished running for the day      
-sendEmail('Program has finished running for the day')  
+sendEmail('Program has finished running for the day.')  
 print("complete") 
