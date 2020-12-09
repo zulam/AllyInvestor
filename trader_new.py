@@ -26,6 +26,21 @@ watchlist_id = 'WATCHLIST'
 acct_val = 1000
 max_invest = acct_val / 20
 
+def begin() :
+    owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
+    try:
+        request = auth.get(owned_url)
+        profile = request.json()
+        info = profile['response']
+    except Exception as e:
+        print(e)
+    try:
+        cash_avail = info['accountbalance']['money']['cashavailable']
+        message = '\nProgram has begun.\nFunds available for trading: $' + str(cash_avail)
+        sendEmail(message)
+    except Exception as e:
+        print(e)
+
 def createWatchlist():
     try:
         url = 'https://api.tradeking.com/v1/watchlists.json'
@@ -137,7 +152,7 @@ def checkToSell():
                 if (rate >= sellTop or rate <= sellBottom):
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], last_price[key].replace('$','').replace(',',''))
+                    sell(key, qty[key], float(last_price[key].replace('$','').replace(',','')) - .1)
                     exclude_sold.append(key)
         sendEmail(message)
     except Exception as e:
@@ -401,12 +416,12 @@ def sendEmail(message):
 running = False
 while not running:
     try:
-        sendEmail('Program has started running for the day') 
         auth = OAuth1Session(
             cfg.key['consumer_key'],
             cfg.key['consumer_secret'],
             cfg.key['oauth_token'],
             cfg.key['oauth_token_secret'])
+        begin()
         createWatchlist()
         running = True
     except Exception as e:
