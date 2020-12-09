@@ -466,14 +466,14 @@ while running:
 
     # early morning close, ready to send emails
     if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 18:
-        if len(email_queue) > 0:
-            for email in email_queue:
-                try:
-                    sendEmail(email)
-                    time.sleep(1)
-                    email_queue.remove(email)
-                except Exception as e:
-                    print(e)
+        # if len(email_queue) > 0:
+        #     for email in email_queue:
+        #         try:
+        #             sendEmail(email)
+        #             time.sleep(1)
+        #             email_queue.remove(email)
+        #         except Exception as e:
+        #             print(e)
         try:
             fillCondensed()
             readFromMasIfEmpty()
