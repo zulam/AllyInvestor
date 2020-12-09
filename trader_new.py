@@ -152,7 +152,7 @@ def checkToSell():
                 if (rate >= sellTop or rate <= sellBottom):
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], float(last_price[key].replace('$','').replace(',','')) - .1)
+                    sell(key, qty[key], float(last_price[key].replace('$','').replace(',','')) * .95)
                     exclude_sold.append(key)
         sendEmail(message)
     except Exception as e:
