@@ -331,9 +331,9 @@ def checkHiLo():
                             # send email to buy stock
                             message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                     + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                            if checkToBuy():
-                                shares_to_buy = round(max_invest / ask)
-                                buy(sym, shares_to_buy, ask)
+                            # if checkToBuy():
+                            #     shares_to_buy = round(max_invest / ask)
+                            #     buy(sym, shares_to_buy, ask)
                             addToWatchlist(sym)
                             exclude_hilo.append(sym)
                 req_lim += 100 
@@ -371,9 +371,9 @@ def checkHiLo():
                     # send email to buy stock
                     message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                             + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                    if checkToBuy():
-                        shares_to_buy = round(max_invest / ask)
-                        buy(sym, shares_to_buy, ask)
+                    # if checkToBuy():
+                    #     shares_to_buy = round(max_invest / ask)
+                    #     buy(sym, shares_to_buy, ask)
                     addToWatchlist(sym)
                     exclude_hilo.append(sym)
         sendEmail(message)            
