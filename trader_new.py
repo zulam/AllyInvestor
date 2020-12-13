@@ -151,10 +151,14 @@ def checkToSell():
                 orig = float(value[1].replace('$','').replace(',',''))
                 curr = float(value[0].replace('$','').replace(',',''))
                 rate = (curr - orig) / orig
-                if (rate >= sellTop or rate <= sellBottom):
+                if rate <= sellBottom:
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
                     sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+                    exclude_sold.append(key)
+                if rate >= sellTop:
+                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+                            + str(round(rate, 4) * 100) + '% from bought)'
                     exclude_sold.append(key)
         sendEmail(message)
     except Exception as e:
