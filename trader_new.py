@@ -25,6 +25,8 @@ sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG',
 watchlist_id = 'WATCHLIST'
 acct_val = 1000
 max_invest = acct_val / 20
+close_open_gainers = []
+close_open_exclude = []
 
 def begin() :
     owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
@@ -263,7 +265,7 @@ def checkEarlyGainers():
     ctr = 0
     req_lim = 100
     gain_check = .04
-    for ticker in ticker_list_condensed:
+    for ticker in close_open_gainers:
         if ctr == req_lim:
             try:
                 r = auth.get(url)
@@ -272,12 +274,12 @@ def checkEarlyGainers():
                 for quote in json_result['response']['quotes']['quote']:
                     percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
                     sym = quote['symbol']
-                    if sym not in exclude_gains:
+                    if sym not in close_open_exclude:
                         if percent_change >= gain_check:
-                            message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                        + str(round(float(percent_change), 4) * 100) + '% gain since open'
+                            message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                        + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
                             addToWatchlist(sym)
-                            exclude_gains.append(sym)
+                            close_open_exclude.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:
@@ -296,18 +298,18 @@ def checkEarlyGainers():
         for quote in json_result['response']['quotes']['quote']:
             percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
             sym = quote['symbol']
-            if sym not in exclude_gains:
+            if sym not in close_open_exclude:
                 if percent_change >= gain_check:
-                    message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                + str(round(float(percent_change), 4) * 100) + '% gain since open'
+                    message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
                     addToWatchlist(sym)
-                    exclude_gains.append(sym)
+                    close_open_exclude.append(sym)
         sendEmail(message)            
     except Exception as e:
         print(e)
 
 def checkGains():
-    message = '\n'
+    #message = '\n'
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
     req_lim = 100
@@ -326,12 +328,13 @@ def checkGains():
                     vol_chg = (vol - avg_vol) / avg_vol
                     sym = quote['symbol']
                     if sym not in exclude_gains:
-                        if (percent_change >= gain_check or percent_change <= -gain_check) and vol_chg >= vol_check:
-                            message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                        + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                                        + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
-                            addToWatchlist(sym)
+                        if percent_change >= gain_check and vol_chg >= vol_check:
+                            # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                            #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                            #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                            # addToWatchlist(sym)
                             exclude_gains.append(sym)
+                            close_open_gainers.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:
@@ -354,13 +357,14 @@ def checkGains():
             vol_chg = (vol - avg_vol) / avg_vol
             sym = quote['symbol']
             if sym not in exclude_gains:
-                if (percent_change >= gain_check or percent_change <= -gain_check) and vol_chg >= vol_check:
-                    message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                                + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
-                    addToWatchlist(sym)
+                if percent_change >= gain_check and vol_chg >= vol_check:
+                    # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                    #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                    #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                    # addToWatchlist(sym)
                     exclude_gains.append(sym)
-        sendEmail(message)            
+                    close_open_gainers.append(sym)
+        #sendEmail(message)            
     except Exception as e:
         print(e)
 
@@ -523,16 +527,17 @@ while running:
     if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
         if clockJson == 'open' and datetime.now().hour == 9:
             try: 
+                readFromMasIfEmpty()
+                checkGains()
                 checkEarlyGainers()
             except Exception as e:
                 print(e)
             print('early gainers cycle done')
-        try: 
-            checkToSell()
+        try:
             readFromMasIfEmpty()
-            checkGains()
             checkHiLo()
             checkNews()
+            checkToSell()
         except Exception as e:
             print(e)
         print('pre / open cycle done')
