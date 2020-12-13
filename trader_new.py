@@ -257,6 +257,55 @@ def checkNews():
     except Exception as e:
         print(e)
 
+def checkEarlyGainers():
+    message = '\n'
+    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
+    ctr = 0
+    req_lim = 100
+    gain_check = .04
+    for ticker in ticker_list_condensed:
+        if ctr == req_lim:
+            try:
+                r = auth.get(url)
+                json_result = r.json()
+                time.sleep(1)
+                for quote in json_result['response']['quotes']['quote']:
+                    percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
+                    sym = quote['symbol']
+                    if sym not in exclude_gains:
+                        if percent_change >= gain_check:
+                            message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                        + str(round(float(percent_change), 4) * 100) + '% gain since open'
+                            addToWatchlist(sym)
+                            exclude_gains.append(sym)
+                req_lim += 100 
+                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
+            except Exception as e:
+                print(e)
+            ctr += 1
+            continue   
+        if ctr == req_lim - 100:
+            url += ticker
+        else:
+            url += ',' + ticker
+        ctr += 1
+    try:
+        r = auth.get(url)
+        json_result = r.json()
+        time.sleep(1)
+        for quote in json_result['response']['quotes']['quote']:
+            percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
+            sym = quote['symbol']
+            if sym not in exclude_gains:
+                if percent_change >= gain_check:
+                    message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                + str(round(float(percent_change), 4) * 100) + '% gain since open'
+                    addToWatchlist(sym)
+                    exclude_gains.append(sym)
+        sendEmail(message)            
+    except Exception as e:
+        print(e)
+
 def checkGains():
     message = '\n'
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
@@ -454,26 +503,9 @@ while running:
                     ticker_list.append(line.split(',')[0].replace('"', ''))
     except Exception as e:
         print(e)
-        
-    # # late night close, filter out stocks and check news
-    # if clockJson == 'close' and datetime.now().hour <= 5:
-    #     try:
-    #         fillCondensed()
-    #         checkNews()
-    #     except Exception as e:
-    #         print(e)
-    #     print('close cycle done')
 
     # early morning close, ready to send emails
     if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 18:
-        # if len(email_queue) > 0:
-        #     for email in email_queue:
-        #         try:
-        #             sendEmail(email)
-        #             time.sleep(1)
-        #             email_queue.remove(email)
-        #         except Exception as e:
-        #             print(e)
         try:
             fillCondensed()
             readFromMasIfEmpty()
@@ -489,6 +521,12 @@ while running:
 
     # pre market, open, or after, check all
     if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
+        if clockJson == 'open' and datetime.now().hour == 9:
+            try: 
+                checkEarlyGainers()
+            except Exception as e:
+                print(e)
+            print('early gainers cycle done')
         try: 
             checkToSell()
             readFromMasIfEmpty()
