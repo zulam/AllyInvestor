@@ -318,7 +318,7 @@ def checkGains():
     ctr = 0
     req_lim = 100
     gain_check = .5
-    vol_check = 1
+    #vol_check = 1
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
             try:
@@ -327,12 +327,12 @@ def checkGains():
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
                     percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
-                    vol = float(quote['vl'])
-                    avg_vol = float(quote['adv_30'])
-                    vol_chg = (vol - avg_vol) / avg_vol
+                    # vol = float(quote['vl'])
+                    # avg_vol = float(quote['adv_30'])
+                    #vol_chg = (vol - avg_vol) / avg_vol
                     sym = quote['symbol']
                     if sym not in exclude_gains:
-                        if percent_change >= gain_check and vol_chg >= vol_check:
+                        if percent_change >= gain_check:
                             # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                             #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
                             #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
@@ -356,12 +356,12 @@ def checkGains():
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
             percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
-            vol = float(quote['vl'])
-            avg_vol = float(quote['adv_30'])
-            vol_chg = (vol - avg_vol) / avg_vol
+            # vol = float(quote['vl'])
+            # avg_vol = float(quote['adv_30'])
+            #vol_chg = (vol - avg_vol) / avg_vol
             sym = quote['symbol']
             if sym not in exclude_gains:
-                if percent_change >= gain_check and vol_chg >= vol_check:
+                if percent_change >= gain_check:
                     # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                     #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
                     #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
