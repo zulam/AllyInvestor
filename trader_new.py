@@ -456,7 +456,7 @@ def sendEmail(message):
     if len(message) > 10:
         if datetime.now().hour >= 6 and datetime.now().hour <= 22:
             try:
-                smtp_server = "smtp.gmail.com"
+                smtp_server = "smtp.mail.yahoo.com"
                 port = 587
                 sender = cfg.email['sender']
                 receiver = cfg.email['receivers']
