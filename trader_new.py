@@ -225,8 +225,8 @@ def checkNews():
     ctr = 0
     req_lim = 100
     tod = datetime.now()
-    #d = timedelta(1)
-    lim = tod #- d
+    d = timedelta(hours = 8)
+    lim = tod - d
     message = '\n'
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
