@@ -276,20 +276,19 @@ def checkEarlyGainers():
                 json_result = r.json()
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
-                    percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
-                    sym = quote['symbol']
-                    if sym not in close_open_exclude:
-                        if percent_change >= gain_check:
-                            message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                        + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                            addToWatchlist(sym)
-                            close_open_exclude.append(sym)
+                    if float(quote['opn']) != 0:
+                        percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
+                        sym = quote['symbol']
+                        if sym not in close_open_exclude:
+                            if percent_change >= gain_check:
+                                message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                            + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+                                addToWatchlist(sym)
+                                close_open_exclude.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
-            except Exception as e:
-                print(e)
-            ctr += 1
-            continue   
+            except Exception as e:  
+                print(e)  
         if ctr == req_lim - 100:
             url += ticker
         else:
@@ -300,14 +299,15 @@ def checkEarlyGainers():
         json_result = r.json()
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
-            percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
-            sym = quote['symbol']
-            if sym not in close_open_exclude:
-                if percent_change >= gain_check:
-                    message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                    addToWatchlist(sym)
-                    close_open_exclude.append(sym)
+            if float(quote['opn']) != 0:
+                percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
+                sym = quote['symbol']
+                if sym not in close_open_exclude:
+                    if percent_change >= gain_check:
+                        message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                    + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+                        addToWatchlist(sym)
+                        close_open_exclude.append(sym)
         sendEmail(message)            
     except Exception as e:
         print(e)
@@ -343,8 +343,6 @@ def checkGains():
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:
                 print(e)
-            ctr += 1
-            continue   
         if ctr == req_lim - 100:
             url += ticker
         else:
@@ -456,7 +454,7 @@ def sendEmail(message):
     if len(message) > 10:
         if datetime.now().hour >= 6 and datetime.now().hour <= 22:
             try:
-                smtp_server = "smtp.mail.yahoo.com"
+                smtp_server = "smtp.gmail.com"
                 port = 587
                 sender = cfg.email['sender']
                 receiver = cfg.email['receivers']
