@@ -11,10 +11,12 @@ import time
 email_queue = []
 email_sent = []
 ticker_list_condensed = []
+close_open_gainers = []
 exclude_news = []
 exclude_gains = []
 exclude_hilo = []
 exclude_sold = []
+exclude_close_open = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
 rate_lim = .05
 price_max = 10
@@ -22,11 +24,10 @@ price_min = .001
 sellTop = .25
 sellBottom = -.05
 sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
-watchlist_id = 'WATCHLIST'
+early_gainers_watchlist = 'GAINERS'
+low_watchlist = 'LOW'
 acct_val = 1000
-max_invest = acct_val / 20
-close_open_gainers = []
-close_open_exclude = []
+#max_invest = acct_val / 20
 
 def begin() :
     owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
@@ -43,27 +44,96 @@ def begin() :
     except Exception as e:
         print(e)
 
-def createWatchlist():
+def fillCondensed():
+    if len(ticker_list_condensed) == 0:
+        url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
+        ctr = 0
+        req_lim = 100
+        for ticker in ticker_list:
+            if ctr == req_lim:
+                try:
+                    r = auth.get(url)
+                    json_result = r.json()
+                    time.sleep(1)
+                    for quote in json_result['response']['quotes']['quote']:
+                        ask_str = quote['ask']
+                        sym = quote['symbol']
+                        ask = float(ask_str) if ask_str != '' else 0
+                        if ask <= price_max and ask != 0 and ask >= price_min:
+                            ticker_list_condensed.append(sym)
+                            print(sym)
+                    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
+                    req_lim += 100 
+                except Exception as e:
+                    print(e)
+                ctr += 1
+                continue
+            if ctr == req_lim - 100:
+                url += ticker
+            else:
+                url += ',' + ticker
+            ctr += 1
+        try:
+            r = auth.get(url)
+            json_result = r.json()
+            time.sleep(1)
+            for quote in json_result['response']['quotes']['quote']:
+                ask_str = quote['ask']
+                sym = quote['symbol']
+                ask = float(ask_str) if ask_str != '' else 0
+                if ask <= price_max and ask != 0 and ask >= price_min:
+                    ticker_list_condensed.append(sym)
+                    print(sym)
+        except Exception as e:
+            print(e)
+        f = open(cfg.file['master_file'], "w")
+        for ticker in ticker_list_condensed:
+            f.write(ticker + '\n')
+        f.close()
+
+def readFromMasIfEmpty():
+    try:
+        if len(ticker_list_condensed) == 0:
+            mas_file = open(cfg.file['master_file'])
+            for line in mas_file:
+                ticker_list_condensed.append(line.strip())
+    except Exception as error:
+        print(error)
+
+def createWatchlists():
     try:
         url = 'https://api.tradeking.com/v1/watchlists.json'
-        body = {'id': watchlist_id}
+        body = {'id': low_watchlist}
+        auth.post(url, body)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+    try:
+        url = 'https://api.tradeking.com/v1/watchlists.json'
+        body = {'id': early_gainers_watchlist}
         auth.post(url, body)
         time.sleep(1)
     except Exception as e:
         print(e)
 
-def addToWatchlist(ticker):
+def addToWatchlist(watchlistId, ticker):
     try:
-        url = 'https://api.tradeking.com/v1/watchlists/' + watchlist_id + '/symbols.json'
+        url = 'https://api.tradeking.com/v1/watchlists/' + watchlistId + '/symbols.json'
         body = {'symbols': ticker}
         auth.post(url, body)
         time.sleep(1)
     except Exception as e:
         print(e)
 
-def deleteWatchlist():
+def deleteWatchlists():
     try:
-        url = 'https://api.tradeking.com/v1/watchlists/' + watchlist_id + '.json'
+        url = 'https://api.tradeking.com/v1/watchlists/' + low_watchlist + '.json'
+        auth.delete(url)
+        time.sleep(1)
+    except Exception as e:
+        print(e)
+    try:
+        url = 'https://api.tradeking.com/v1/watchlists/' + early_gainers_watchlist + '.json'
         auth.delete(url)
         time.sleep(1)
     except Exception as e:
@@ -163,62 +233,6 @@ def checkToSell():
         sendEmail(message)
     except Exception as e:
         print(e)
-    
-def fillCondensed():
-    if len(ticker_list_condensed) == 0:
-        url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
-        ctr = 0
-        req_lim = 100
-        for ticker in ticker_list:
-            if ctr == req_lim:
-                try:
-                    r = auth.get(url)
-                    json_result = r.json()
-                    time.sleep(1)
-                    for quote in json_result['response']['quotes']['quote']:
-                        ask_str = quote['ask']
-                        sym = quote['symbol']
-                        ask = float(ask_str) if ask_str != '' else 0
-                        if ask <= price_max and ask != 0 and ask >= price_min:
-                            ticker_list_condensed.append(sym)
-                            print(sym)
-                    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
-                    req_lim += 100 
-                except Exception as e:
-                    print(e)
-                ctr += 1
-                continue
-            if ctr == req_lim - 100:
-                url += ticker
-            else:
-                url += ',' + ticker
-            ctr += 1
-        try:
-            r = auth.get(url)
-            json_result = r.json()
-            time.sleep(1)
-            for quote in json_result['response']['quotes']['quote']:
-                ask_str = quote['ask']
-                sym = quote['symbol']
-                ask = float(ask_str) if ask_str != '' else 0
-                if ask <= price_max and ask != 0 and ask >= price_min:
-                    ticker_list_condensed.append(sym)
-                    print(sym)
-        except Exception as e:
-            print(e)
-        f = open(cfg.file['master_file'], "w")
-        for ticker in ticker_list_condensed:
-            f.write(ticker + '\n')
-        f.close()
-
-def readFromMasIfEmpty():
-    try:
-        if len(ticker_list_condensed) == 0:
-            mas_file = open(cfg.file['master_file'])
-            for line in mas_file:
-                ticker_list_condensed.append(line.strip())
-    except Exception as error:
-        print(error)
 
 def checkNews():
     newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -279,12 +293,12 @@ def checkEarlyGainers():
                     if float(quote['opn']) != 0:
                         percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
                         sym = quote['symbol']
-                        if sym not in close_open_exclude:
+                        if sym not in exclude_close_open:
                             if percent_change >= gain_check:
                                 message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                             + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                                addToWatchlist(sym)
-                                close_open_exclude.append(sym)
+                                addToWatchlist(early_gainers_watchlist, sym)
+                                exclude_close_open.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:  
@@ -302,12 +316,12 @@ def checkEarlyGainers():
             if float(quote['opn']) != 0:
                 percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
                 sym = quote['symbol']
-                if sym not in close_open_exclude:
+                if sym not in exclude_close_open:
                     if percent_change >= gain_check:
                         message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                     + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                        addToWatchlist(sym)
-                        close_open_exclude.append(sym)
+                        addToWatchlist(early_gainers_watchlist, sym)
+                        exclude_close_open.append(sym)
         sendEmail(message)            
     except Exception as e:
         print(e)
@@ -404,7 +418,7 @@ def checkHiLo():
                             # if checkToBuy():
                             #     shares_to_buy = round(max_invest / ask)
                             #     buy(sym, shares_to_buy, ask)
-                            addToWatchlist(sym)
+                            addToWatchlist(low_watchlist, sym)
                             exclude_hilo.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
@@ -444,7 +458,7 @@ def checkHiLo():
                     # if checkToBuy():
                     #     shares_to_buy = round(max_invest / ask)
                     #     buy(sym, shares_to_buy, ask)
-                    addToWatchlist(sym)
+                    addToWatchlist(low_watchlist, sym)
                     exclude_hilo.append(sym)
         sendEmail(message)            
     except Exception as e:
@@ -477,7 +491,7 @@ while not running:
             cfg.key['oauth_token'],
             cfg.key['oauth_token_secret'])
         begin()
-        createWatchlist()
+        createWatchlists()
         running = True
     except Exception as e:
         print(e)
@@ -511,7 +525,7 @@ while running:
         print(e)
 
     # early morning close, ready to send emails
-    if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 18:
+    if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 17:
         try:
             fillCondensed()
             readFromMasIfEmpty()
@@ -520,9 +534,9 @@ while running:
             print(e)
         print('close cycle done')
     
-    elif clockJson == 'close' and datetime.now().hour >= 18:
+    elif clockJson == 'close' and datetime.now().hour >= 17:
         running = False
-        deleteWatchlist()
+        deleteWatchlists()
         print('close cycle done')
 
     # pre market, open, or after, check all
