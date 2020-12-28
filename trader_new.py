@@ -400,30 +400,31 @@ def checkHiLo():
                 json_result = r.json()
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
-                    low = 0.0
-                    high = 0.0
-                    reward = 0.0
-                    sym = quote['symbol']
-                    if sym not in exclude_hilo:
-                        ask = float(quote['ask'])
-                        if ask >= .01:
-                            low = round(float(quote['wk52lo']), 4)
-                            high = round(float(quote['wk52hi']), 4)
-                            if low != 0 and high != 0:
-                                reward = ((high - low) / low) * 100
-                        if low == 0:
-                            low = .001
-                        rate_from_low = (ask - low) / low
-                        approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                        if approach_low:
-                            # send email to buy stock
-                            message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                    + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                            # if checkToBuy():
-                            #     shares_to_buy = round(max_invest / ask)
-                            #     buy(sym, shares_to_buy, ask)
-                            addToWatchlist(low_watchlist, sym)
-                            exclude_hilo.append(sym)
+                    if quote['wk52lo'] != '' and quote['wk52hi'] != '':
+                        low = 0.0
+                        high = 0.0
+                        reward = 0.0
+                        sym = quote['symbol']
+                        if sym not in exclude_hilo:
+                            ask = float(quote['ask'])
+                            if ask >= .01:
+                                low = round(float(quote['wk52lo']), 4)
+                                high = round(float(quote['wk52hi']), 4)
+                                if low != 0 and high != 0:
+                                    reward = ((high - low) / low) * 100
+                            if low == 0:
+                                low = .001
+                            rate_from_low = (ask - low) / low
+                            approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+                            if approach_low:
+                                # send email to buy stock
+                                message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                        + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                                # if checkToBuy():
+                                #     shares_to_buy = round(max_invest / ask)
+                                #     buy(sym, shares_to_buy, ask)
+                                addToWatchlist(low_watchlist, sym)
+                                exclude_hilo.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
             except Exception as e:
@@ -440,30 +441,31 @@ def checkHiLo():
         json_result = r.json()
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
-            low = 0.0
-            high = 0.0
-            reward = 0.0
-            sym = quote['symbol']
-            if sym not in exclude_hilo:
-                ask = float(quote['ask'])
-                if ask >= .01:
-                    low = float(quote['wk52lo'])
-                    high = round(float(quote['wk52hi']), 4)
-                    if low != 0 and high != 0:
-                        reward = ((high - low) / low) * 100
-                if low == 0:
-                    low = .001
-                rate_from_low = (ask - low) / low
-                approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                if approach_low:
-                    # send email to buy stock
-                    message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                            + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                    # if checkToBuy():
-                    #     shares_to_buy = round(max_invest / ask)
-                    #     buy(sym, shares_to_buy, ask)
-                    addToWatchlist(low_watchlist, sym)
-                    exclude_hilo.append(sym)
+            if quote['wk52lo'] != '' and quote['wk52hi'] != '':
+                low = 0.0
+                high = 0.0
+                reward = 0.0
+                sym = quote['symbol']
+                if sym not in exclude_hilo:
+                    ask = float(quote['ask'])
+                    if ask >= .01:
+                        low = float(quote['wk52lo'])
+                        high = round(float(quote['wk52hi']), 4)
+                        if low != 0 and high != 0:
+                            reward = ((high - low) / low) * 100
+                    if low == 0:
+                        low = .001
+                    rate_from_low = (ask - low) / low
+                    approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+                    if approach_low:
+                        # send email to buy stock
+                        message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                        # if checkToBuy():
+                        #     shares_to_buy = round(max_invest / ask)
+                        #     buy(sym, shares_to_buy, ask)
+                        addToWatchlist(low_watchlist, sym)
+                        exclude_hilo.append(sym)
         sendEmail(message)            
     except Exception as e:
         print(e)
