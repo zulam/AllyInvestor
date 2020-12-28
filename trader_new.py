@@ -314,7 +314,7 @@ def checkEarlyGainers():
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
             if float(quote['opn']) != 0:
-                percent_change = (float(quote['ask']) - float(quote['opn']) / float(quote['opn']))
+                percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
                 sym = quote['symbol']
                 if sym not in exclude_close_open:
                     if percent_change >= gain_check:
@@ -340,7 +340,7 @@ def checkGains():
                 json_result = r.json()
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
-                    percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
+                    percent_change = (float(quote['ask']) - float(quote['cl'])) / float(quote['cl'])
                     # vol = float(quote['vl'])
                     # avg_vol = float(quote['adv_30'])
                     #vol_chg = (vol - avg_vol) / avg_vol
@@ -367,7 +367,7 @@ def checkGains():
         json_result = r.json()
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
-            percent_change = (float(quote['ask']) - float(quote['cl']) / float(quote['cl']))
+            percent_change = (float(quote['ask']) - float(quote['cl'])) / float(quote['cl'])
             # vol = float(quote['vl'])
             # avg_vol = float(quote['adv_30'])
             #vol_chg = (vol - avg_vol) / avg_vol
