@@ -290,15 +290,16 @@ def checkEarlyGainers():
                 json_result = r.json()
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
-                    if float(quote['opn']) != 0:
-                        percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
-                        sym = quote['symbol']
-                        if sym not in exclude_close_open:
-                            if percent_change >= gain_check:
-                                message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                            + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                                addToWatchlist(early_gainers_watchlist, sym)
-                                exclude_close_open.append(sym)
+                    if quote['ask'] != '' and quote['opn'] != '':
+                        if float(quote['opn']) != 0:
+                            percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
+                            sym = quote['symbol']
+                            if sym not in exclude_close_open:
+                                if percent_change >= gain_check:
+                                    message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                                + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+                                    addToWatchlist(early_gainers_watchlist, sym)
+                                    exclude_close_open.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:  
@@ -313,15 +314,16 @@ def checkEarlyGainers():
         json_result = r.json()
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
-            if float(quote['opn']) != 0:
-                percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
-                sym = quote['symbol']
-                if sym not in exclude_close_open:
-                    if percent_change >= gain_check:
-                        message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                    + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                        addToWatchlist(early_gainers_watchlist, sym)
-                        exclude_close_open.append(sym)
+            if quote['ask'] != '' and quote['opn'] != '':
+                if float(quote['opn']) != 0:
+                    percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
+                    sym = quote['symbol']
+                    if sym not in exclude_close_open:
+                        if percent_change >= gain_check:
+                            message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                        + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+                            addToWatchlist(early_gainers_watchlist, sym)
+                            exclude_close_open.append(sym)
         sendEmail(message)            
     except Exception as e:
         print(e)
@@ -340,19 +342,20 @@ def checkGains():
                 json_result = r.json()
                 time.sleep(1)
                 for quote in json_result['response']['quotes']['quote']:
-                    percent_change = (float(quote['ask']) - float(quote['cl'])) / float(quote['cl'])
-                    # vol = float(quote['vl'])
-                    # avg_vol = float(quote['adv_30'])
-                    #vol_chg = (vol - avg_vol) / avg_vol
-                    sym = quote['symbol']
-                    if sym not in exclude_gains:
-                        if percent_change >= gain_check:
-                            # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                            #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                            #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
-                            # addToWatchlist(sym)
-                            exclude_gains.append(sym)
-                            close_open_gainers.append(sym)
+                    if quote['ask'] != '' and quote['cl'] != '':
+                        percent_change = (float(quote['ask']) - float(quote['cl'])) / float(quote['cl'])
+                        # vol = float(quote['vl'])
+                        # avg_vol = float(quote['adv_30'])
+                        #vol_chg = (vol - avg_vol) / avg_vol
+                        sym = quote['symbol']
+                        if sym not in exclude_gains:
+                            if percent_change >= gain_check:
+                                # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                                #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                                # addToWatchlist(sym)
+                                exclude_gains.append(sym)
+                                close_open_gainers.append(sym)
                 req_lim += 100 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:
@@ -367,19 +370,20 @@ def checkGains():
         json_result = r.json()
         time.sleep(1)
         for quote in json_result['response']['quotes']['quote']:
-            percent_change = (float(quote['ask']) - float(quote['cl'])) / float(quote['cl'])
-            # vol = float(quote['vl'])
-            # avg_vol = float(quote['adv_30'])
-            #vol_chg = (vol - avg_vol) / avg_vol
-            sym = quote['symbol']
-            if sym not in exclude_gains:
-                if percent_change >= gain_check:
-                    # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                    #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                    #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
-                    # addToWatchlist(sym)
-                    exclude_gains.append(sym)
-                    close_open_gainers.append(sym)
+            if quote['ask'] != '' and quote['cl'] != '':
+                percent_change = (float(quote['ask']) - float(quote['cl'])) / float(quote['cl'])
+                # vol = float(quote['vl'])
+                # avg_vol = float(quote['adv_30'])
+                #vol_chg = (vol - avg_vol) / avg_vol
+                sym = quote['symbol']
+                if sym not in exclude_gains:
+                    if percent_change >= gain_check:
+                        # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                        #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
+                        #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
+                        # addToWatchlist(sym)
+                        exclude_gains.append(sym)
+                        close_open_gainers.append(sym)
         #sendEmail(message)            
     except Exception as e:
         print(e)
