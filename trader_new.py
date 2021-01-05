@@ -224,7 +224,7 @@ def checkToSell():
                 if rate <= sellBottom:
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+                    #sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
                     exclude_sold.append(key)
                 if rate >= sellTop:
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
