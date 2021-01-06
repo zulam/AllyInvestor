@@ -333,7 +333,7 @@ def checkGains():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
     req_lim = 100
-    gain_check = .5
+    gain_check = .25
     #vol_check = 1
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
@@ -547,7 +547,7 @@ while running:
 
     # pre market, open, or after, check all
     if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
-        if clockJson == 'open' and datetime.now().hour == 9:
+        if clockJson == 'open' and (datetime.now().hour == 9 or datetime.now().hour == 10):
             try: 
                 readFromMasIfEmpty()
                 checkGains()
