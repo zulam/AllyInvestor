@@ -6,6 +6,7 @@ import config as cfg
 import requests
 import smtplib
 import time
+from email.message import EmailMessage
 
 # initialize
 email_queue = []
@@ -40,7 +41,7 @@ def begin() :
     try:
         cash_avail = round(float(info['accountbalance']['money']['cashavailable']) - float(info['accountbalance']['money']['unsettledfunds']), 2)
         message = '\nProgram has begun.\nFunds available for trading: $' + str(cash_avail)
-        sendEmail(message)
+        sendEmail(message, True)
     except Exception as e:
         print(e)
 
@@ -150,7 +151,7 @@ def buy(ticker, quant, lim):
             message += 'Buy order placed for ' + ticker + ' at ' + str(lim) 
         else:
             message += 'BUY ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
-        sendEmail(message)
+        sendEmail(message, False)
         time.sleep(1)
     except Exception as e:
         print(e)
@@ -185,7 +186,7 @@ def sell(ticker, quant, lim):
             message += 'Sell order placed for ' + ticker + ' at ' + str(lim) 
         else:
             message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
-        sendEmail(message)
+        sendEmail(message, False)
         time.sleep(1)
     except Exception as e:
         print(e)
@@ -230,7 +231,7 @@ def checkToSell():
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
                     exclude_sold.append(key)
-        sendEmail(message)
+        sendEmail(message, False)
     except Exception as e:
         print(e)
 
@@ -273,7 +274,7 @@ def checkNews():
                 if article['headline'] not in exclude_news:
                     message += '\n\n' + article['date'] + ': ' + article['headline'] 
                     exclude_news.append(article['headline'])
-        sendEmail(message)
+        sendEmail(message, True)
     except Exception as e:
         print(e)
 
@@ -324,7 +325,7 @@ def checkEarlyGainers():
                                         + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
                             addToWatchlist(early_gainers_watchlist, sym)
                             exclude_close_open.append(sym)
-        sendEmail(message)            
+        sendEmail(message, True)            
     except Exception as e:
         print(e)
 
@@ -466,23 +467,31 @@ def checkHiLo():
                         #     buy(sym, shares_to_buy, ask)
                         addToWatchlist(low_watchlist, sym)
                         exclude_hilo.append(sym)
-        sendEmail(message)            
+        sendEmail(message, True)            
     except Exception as e:
         print(e)
 
-def sendEmail(message):
+def sendEmail(message, public):
     if len(message) > 10:
         if datetime.now().hour >= 6 and datetime.now().hour <= 22:
             try:
+                msg = EmailMessage()
+                msg['Subject'] = 'Ally Investor'
+                msg['From'] = cfg.email['sender']
+                if public:
+                    msg['To'] = ', '.join(cfg.email['receivers'])
+                else:
+                    msg['To'] = cfg.email['receiver']
+                msg.set_content(message)
                 smtp_server = "smtp.gmail.com"
                 port = 587
                 sender = cfg.email['sender']
-                receiver = cfg.email['receivers']
                 password = cfg.email['password']
                 server = smtplib.SMTP(smtp_server, port)
                 server.starttls()
                 server.login(sender, password)
-                server.sendmail(sender, receiver, message)
+                #server.sendmail(sender, receiver, message)
+                server.send_message(msg)
             except Exception as e:
                 print(e)
         else:
@@ -565,5 +574,5 @@ while running:
         print('pre / open cycle done')
 
 # finished running for the day      
-sendEmail('Program has finished running for the day.')  
+sendEmail('Program has finished running for the day.', True)  
 print("complete") 
