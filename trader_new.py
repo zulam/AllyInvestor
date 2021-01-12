@@ -547,7 +547,7 @@ while running:
 
     # pre market, open, or after, check all
     if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
-        if clockJson == 'open':
+        if clockJson == 'open' and (datetime.now().hour == 9 or datetime.now().hour == 10 or datetime.now().hour == 15):
             try: 
                 readFromMasIfEmpty()
                 checkGains()
