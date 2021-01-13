@@ -41,7 +41,9 @@ def begin() :
     try:
         cash_avail = round(float(info['accountbalance']['money']['cashavailable']) - float(info['accountbalance']['money']['unsettledfunds']), 2)
         message = '\nProgram has begun.\nFunds available for trading: $' + str(cash_avail)
-        sendEmail(message, True)
+        message_public = '\nProgram has begun.'
+        sendEmail(message, False)
+        sendEmail(message_public, True)
     except Exception as e:
         print(e)
 
