@@ -558,7 +558,7 @@ while running:
 
     # pre market, open, or after, check all
     if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
-        if clockJson == 'open' and (datetime.now().hour == 9 or datetime.now().hour == 10 or datetime.now().hour == 15):
+        if clockJson == 'open': # and (datetime.now().hour == 9 or datetime.now().hour == 10 or datetime.now().hour == 15):
             try: 
                 readFromMasIfEmpty()
                 checkGains()
@@ -568,9 +568,9 @@ while running:
             print('early gainers cycle done')
         try:
             readFromMasIfEmpty()
-            checkHiLo()
+            #checkHiLo()
             checkNews()
-            checkToSell()
+            #checkToSell()
         except Exception as e:
             print(e)
         print('pre / open cycle done')
