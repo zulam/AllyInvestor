@@ -255,7 +255,8 @@ def checkNews():
                 for article in articles['article']:
                     if parse(article['date']) >= lim:
                         if article['headline'] not in exclude_news:
-                            message += '\n\n' + article['date'] + ': ' + article['headline'] 
+                            message = '\n\n' + article['date'] + ': ' + article['headline'] 
+                            sendEmail(message, True)
                             exclude_news.append(article['headline'])
                 req_lim += 100 
                 newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -274,9 +275,10 @@ def checkNews():
         for article in articles['article']:
             if parse(article['date']) >= lim:
                 if article['headline'] not in exclude_news:
-                    message += '\n\n' + article['date'] + ': ' + article['headline'] 
+                    message = '\n\n' + article['date'] + ': ' + article['headline'] 
+                    sendEmail(message, True)
                     exclude_news.append(article['headline'])
-        sendEmail(message, True)
+        #sendEmail(message, True)
     except Exception as e:
         print(e)
 
@@ -299,8 +301,9 @@ def checkEarlyGainers():
                             sym = quote['symbol']
                             if sym not in exclude_close_open:
                                 if percent_change >= gain_check:
-                                    message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                    message = '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                                 + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+                                    sendEmail(message, True) 
                                     addToWatchlist(early_gainers_watchlist, sym)
                                     exclude_close_open.append(sym)
                 req_lim += 100 
@@ -323,11 +326,12 @@ def checkEarlyGainers():
                     sym = quote['symbol']
                     if sym not in exclude_close_open:
                         if percent_change >= gain_check:
-                            message += '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                            message = '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                         + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+                            sendEmail(message, True) 
                             addToWatchlist(early_gainers_watchlist, sym)
                             exclude_close_open.append(sym)
-        sendEmail(message, True)            
+        #sendEmail(message, True)            
     except Exception as e:
         print(e)
 
@@ -421,8 +425,9 @@ def checkHiLo():
                             approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
                             if approach_low:
                                 # send email to buy stock
-                                message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                         + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                                sendEmail(message, True)
                                 # if checkToBuy():
                                 #     shares_to_buy = round(max_invest / ask)
                                 #     buy(sym, shares_to_buy, ask)
@@ -462,14 +467,15 @@ def checkHiLo():
                     approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
                     if approach_low:
                         # send email to buy stock
-                        message += '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                        message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                 + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                        sendEmail(message, True)
                         # if checkToBuy():
                         #     shares_to_buy = round(max_invest / ask)
                         #     buy(sym, shares_to_buy, ask)
                         addToWatchlist(low_watchlist, sym)
                         exclude_hilo.append(sym)
-        sendEmail(message, True)            
+        #sendEmail(message, True)            
     except Exception as e:
         print(e)
 
