@@ -7,6 +7,8 @@ import requests
 import smtplib
 import time
 from email.message import EmailMessage
+import threading
+from queue import Queue
 
 # initialize
 email_queue = []
@@ -562,24 +564,27 @@ while running:
         deleteWatchlists()
         print('close cycle done')
 
-    # pre market, open, or after, check all
-    if clockJson == 'pre' or clockJson == 'open' or clockJson == 'after':
-        if clockJson == 'open': # and (datetime.now().hour == 9 or datetime.now().hour == 10 or datetime.now().hour == 15):
-            try: 
-                readFromMasIfEmpty()
-                checkGains()
-                checkEarlyGainers()
-            except Exception as e:
-                print(e)
-            print('early gainers cycle done')
+    # pre market or after hours
+    if clockJson == 'pre' or clockJson == 'after':
         try:
             readFromMasIfEmpty()
-            #checkHiLo()
             checkNews()
-            #checkToSell()
         except Exception as e:
             print(e)
-        print('pre / open cycle done')
+        print('pre cycle done')
+
+    # open 
+    if clockJson == 'open':
+        try: 
+            readFromMasIfEmpty()
+            checkGains()
+            gainers_thread = threading.Thread(target=checkEarlyGainers)
+            news_thread = threading.Thread(target=checkNews)
+            gainers_thread.start()
+            news_thread.start()
+        except Exception as e:
+            print(e)
+        print('open cycle done')
 
 # finished running for the day      
 sendEmail('Program has finished running for the day.', True)  
