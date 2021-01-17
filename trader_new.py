@@ -577,11 +577,13 @@ while running:
     if clockJson == 'open':
         try: 
             readFromMasIfEmpty()
-            checkGains()
-            gainers_thread = threading.Thread(target=checkEarlyGainers)
+            gainers_thread = threading.Thread(target=checkGains)
             news_thread = threading.Thread(target=checkNews)
             gainers_thread.start()
             news_thread.start()
+            gainers_thread.join()
+            checkEarlyGainers()
+            news_thread.join()
         except Exception as e:
             print(e)
         print('open cycle done')
