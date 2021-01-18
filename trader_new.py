@@ -53,7 +53,8 @@ def fillCondensed():
     if len(ticker_list_condensed) == 0:
         url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
         ctr = 0
-        req_lim = 100
+        req_lim = 400
+        lim_increment = 400
         for ticker in ticker_list:
             if ctr == req_lim:
                 try:
@@ -68,12 +69,12 @@ def fillCondensed():
                             ticker_list_condensed.append(sym)
                             print(sym)
                     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
-                    req_lim += 100 
+                    req_lim += lim_increment 
                 except Exception as e:
                     print(e)
                 ctr += 1
                 continue
-            if ctr == req_lim - 100:
+            if ctr == req_lim - lim_increment:
                 url += ticker
             else:
                 url += ',' + ticker
@@ -242,7 +243,8 @@ def checkToSell():
 def checkNews():
     newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
     ctr = 0
-    req_lim = 100
+    req_lim = 400
+    lim_increment = 400
     tod = datetime.now()
     d = timedelta(hours = 8)
     lim = tod - d
@@ -260,11 +262,11 @@ def checkNews():
                             message = '\n\n' + article['date'] + ': ' + article['headline'] 
                             sendEmail(message, True)
                             exclude_news.append(article['headline'])
-                req_lim += 100 
+                req_lim += lim_increment 
                 newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
             except Exception as e:
                 print(e)
-        if ctr == req_lim - 100:
+        if ctr == req_lim - lim_increment:
             newsUrl += ticker
         else:
             newsUrl += ',' + ticker
@@ -288,7 +290,8 @@ def checkEarlyGainers():
     message = '\n'
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
-    req_lim = 100
+    req_lim = 400
+    lim_increment = 400
     gain_check = .04
     for ticker in close_open_gainers:
         if ctr == req_lim:
@@ -308,11 +311,11 @@ def checkEarlyGainers():
                                     sendEmail(message, True) 
                                     addToWatchlist(early_gainers_watchlist, sym)
                                     exclude_close_open.append(sym)
-                req_lim += 100 
+                req_lim += lim_increment 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:  
                 print(e)  
-        if ctr == req_lim - 100:
+        if ctr == req_lim - lim_increment:
             url += ticker
         else:
             url += ',' + ticker
@@ -341,7 +344,8 @@ def checkGains():
     #message = '\n'
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
-    req_lim = 100
+    req_lim = 400
+    lim_increment = 400
     gain_check = .25
     #vol_check = 1
     for ticker in ticker_list_condensed:
@@ -365,11 +369,11 @@ def checkGains():
                                 # addToWatchlist(sym)
                                 exclude_gains.append(sym)
                                 close_open_gainers.append(sym)
-                req_lim += 100 
+                req_lim += lim_increment 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
             except Exception as e:
                 print(e)
-        if ctr == req_lim - 100:
+        if ctr == req_lim - lim_increment:
             url += ticker
         else:
             url += ',' + ticker
@@ -400,7 +404,8 @@ def checkGains():
 def checkHiLo():
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
-    req_lim = 100
+    req_lim = 400
+    lim_increment = 400
     message = '\n'
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
@@ -435,13 +440,13 @@ def checkHiLo():
                                 #     buy(sym, shares_to_buy, ask)
                                 addToWatchlist(low_watchlist, sym)
                                 exclude_hilo.append(sym)
-                req_lim += 100 
+                req_lim += lim_increment 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
             except Exception as e:
                 print(e)
             ctr += 1
             continue
-        if ctr == req_lim - 100:
+        if ctr == req_lim - lim_increment:
             url += ticker
         else:
             url += ',' + ticker
