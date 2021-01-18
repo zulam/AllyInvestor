@@ -259,8 +259,8 @@ def checkNews():
                 for article in articles['article']:
                     if parse(article['date']) >= lim:
                         if article['headline'] not in exclude_news:
-                            message = '\n\n' + article['date'] + ': ' + article['headline'] 
-                            sendEmail(message, True)
+                            message += '\n\n' + article['date'] + ': ' + article['headline'] 
+                            #sendEmail(message, True)
                             exclude_news.append(article['headline'])
                 req_lim += lim_increment 
                 newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -279,10 +279,10 @@ def checkNews():
         for article in articles['article']:
             if parse(article['date']) >= lim:
                 if article['headline'] not in exclude_news:
-                    message = '\n\n' + article['date'] + ': ' + article['headline'] 
-                    sendEmail(message, True)
+                    message += '\n\n' + article['date'] + ': ' + article['headline'] 
+                    #sendEmail(message, True)
                     exclude_news.append(article['headline'])
-        #sendEmail(message, True)
+        sendEmail(message, True)
     except Exception as e:
         print(e)
 
