@@ -28,7 +28,7 @@ sellTop = .25
 sellBottom = -.05
 sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 early_gainers_watchlist = 'GAINERS'
-low_watchlist = 'LOW'
+#low_watchlist = 'LOW'
 acct_val = 1000
 #max_invest = acct_val / 20
 
@@ -109,13 +109,6 @@ def readFromMasIfEmpty():
 def createWatchlists():
     try:
         url = 'https://api.tradeking.com/v1/watchlists.json'
-        body = {'id': low_watchlist}
-        auth.post(url, body)
-        time.sleep(1)
-    except Exception as e:
-        print(e)
-    try:
-        url = 'https://api.tradeking.com/v1/watchlists.json'
         body = {'id': early_gainers_watchlist}
         auth.post(url, body)
         time.sleep(1)
@@ -133,112 +126,106 @@ def addToWatchlist(watchlistId, ticker):
 
 def deleteWatchlists():
     try:
-        url = 'https://api.tradeking.com/v1/watchlists/' + low_watchlist + '.json'
-        auth.delete(url)
-        time.sleep(1)
-    except Exception as e:
-        print(e)
-    try:
         url = 'https://api.tradeking.com/v1/watchlists/' + early_gainers_watchlist + '.json'
         auth.delete(url)
         time.sleep(1)
     except Exception as e:
         print(e)
 
-def buy(ticker, quant, lim):
-    try:
-        message = '\n'
-        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
-        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="1" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
-        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
-        resp = auth.post(url, body)
-        if resp.status_code == 200:
-            message += 'Buy order placed for ' + ticker + ' at ' + str(lim) 
-        else:
-            message += 'BUY ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
-        sendEmail(message, False)
-        time.sleep(1)
-    except Exception as e:
-        print(e)
+# def buy(ticker, quant, lim):
+#     try:
+#         message = '\n'
+#         url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
+#         body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="1" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
+#         + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
+#         resp = auth.post(url, body)
+#         if resp.status_code == 200:
+#             message += 'Buy order placed for ' + ticker + ' at ' + str(lim) 
+#         else:
+#             message += 'BUY ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
+#         sendEmail(message, False)
+#         time.sleep(1)
+#     except Exception as e:
+#         print(e)
 
-def checkToBuy():
-    owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
-    try:
-        request = auth.get(owned_url)
-        profile = request.json()
-        info = profile['response']
-    except Exception as e:
-        print(e)
-    try:
-        unsettled = info['accountbalance']['money']['unsettledfunds']
-        cash_avail = info['accountbalance']['money']['cashavailable']
-        if float(unsettled) < (acct_val / 3) and float(cash_avail) >= (acct_val * .66):
-            return True
-        else: 
-            return False
-    except Exception as e:
-        print(e)
-        return False
+# def checkToBuy():
+#     owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
+#     try:
+#         request = auth.get(owned_url)
+#         profile = request.json()
+#         info = profile['response']
+#     except Exception as e:
+#         print(e)
+#     try:
+#         unsettled = info['accountbalance']['money']['unsettledfunds']
+#         cash_avail = info['accountbalance']['money']['cashavailable']
+#         if float(unsettled) < (acct_val / 3) and float(cash_avail) >= (acct_val * .66):
+#             return True
+#         else: 
+#             return False
+#     except Exception as e:
+#         print(e)
+#         return False
 
-def sell(ticker, quant, lim):
-    try:
-        message = '\n'
-        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
-        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="2" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
-        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
-        resp = auth.post(url, body)
-        if resp.status_code == 200:
-            message += 'Sell order placed for ' + ticker + ' at ' + str(lim) 
-        else:
-            message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
-        sendEmail(message, False)
-        time.sleep(1)
-    except Exception as e:
-        print(e)
+# def sell(ticker, quant, lim):
+#     try:
+#         message = '\n'
+#         url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
+#         body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="2" Side="2" Px=' + '\"' + str(lim) + '\"' + ' Acct=' + '\"' + cfg.account + '\"' \
+#         + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
+#         resp = auth.post(url, body)
+#         if resp.status_code == 200:
+#             message += 'Sell order placed for ' + ticker + ' at ' + str(lim) 
+#         else:
+#             message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
+#         sendEmail(message, False)
+#         time.sleep(1)
+#     except Exception as e:
+#         print(e)
 
-def checkToSell():
-    message = '\n'
-    owned_url = 'https://api.tradeking.com/v1/accounts.json'
-    holdings = {}
-    last_price = {}
-    qty = {}
-    stocks_owned = []
-    try:
-        request = auth.get(owned_url)
-        profile = request.json()
-        info = profile['response']['accounts']['accountsummary']
-    except Exception as e:
-        print(e)
-    try:
-        for item in info:
-            if item['account'] == cfg.account:
-                stocks_owned.append(item['accountholdings']['holding'])
-                for holding in stocks_owned:
-                    for item in holding: 
-                        if item['displaydata']['symbol'] not in sym_ign:
-                            holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
-                            last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
-                            qty[item['displaydata']['symbol']] = item['displaydata']['qty']
-    except Exception as e:
-        print(e)
-    try:   
-        for key, value in holdings.items():
-            if key not in exclude_sold:
-                orig = float(value[1].replace('$','').replace(',',''))
-                curr = float(value[0].replace('$','').replace(',',''))
-                rate = (curr - orig) / orig
-                if rate <= sellBottom:
-                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
-                    #sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    exclude_sold.append(key)
-                if rate >= sellTop:
-                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
-                    exclude_sold.append(key)
-        sendEmail(message, False)
-    except Exception as e:
-        print(e)
+# def checkToSell():
+#     message = '\n'
+#     owned_url = 'https://api.tradeking.com/v1/accounts.json'
+#     holdings = {}
+#     last_price = {}
+#     qty = {}
+#     stocks_owned = []
+#     try:
+#         request = auth.get(owned_url)
+#         profile = request.json()
+#         info = profile['response']['accounts']['accountsummary']
+#     except Exception as e:
+#         print(e)
+#     try:
+#         for item in info:
+#             if item['account'] == cfg.account:
+#                 stocks_owned.append(item['accountholdings']['holding'])
+#                 for holding in stocks_owned:
+#                     for item in holding: 
+#                         if item['displaydata']['symbol'] not in sym_ign:
+#                             holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+#                             last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
+#                             qty[item['displaydata']['symbol']] = item['displaydata']['qty']
+#     except Exception as e:
+#         print(e)
+#     try:   
+#         for key, value in holdings.items():
+#             if key not in exclude_sold:
+#                 orig = float(value[1].replace('$','').replace(',',''))
+#                 curr = float(value[0].replace('$','').replace(',',''))
+#                 rate = (curr - orig) / orig
+#                 if rate <= sellBottom:
+#                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+#                             + str(round(rate, 4) * 100) + '% from bought)'
+#                     #sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+#                     exclude_sold.append(key)
+#                 if rate >= sellTop:
+#                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+#                             + str(round(rate, 4) * 100) + '% from bought)'
+#                     exclude_sold.append(key)
+#         sendEmail(message, False)
+#     except Exception as e:
+#         print(e)
 
 def checkNews():
     newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -401,90 +388,90 @@ def checkGains():
     except Exception as e:
         print(e)
 
-def checkHiLo():
-    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
-    ctr = 0
-    req_lim = 400
-    lim_increment = 400
-    message = '\n'
-    for ticker in ticker_list_condensed:
-        if ctr == req_lim:
-            try:
-                r = auth.get(url)
-                json_result = r.json()
-                time.sleep(1)
-                for quote in json_result['response']['quotes']['quote']:
-                    if quote['wk52lo'] != '' and quote['wk52hi'] != '':
-                        low = 0.0
-                        high = 0.0
-                        reward = 0.0
-                        sym = quote['symbol']
-                        if sym not in exclude_hilo:
-                            ask = float(quote['ask'])
-                            if ask >= .01:
-                                low = round(float(quote['wk52lo']), 4)
-                                high = round(float(quote['wk52hi']), 4)
-                                if low != 0 and high != 0:
-                                    reward = ((high - low) / low) * 100
-                            if low == 0:
-                                low = .001
-                            rate_from_low = (ask - low) / low
-                            approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                            if approach_low:
-                                # send email to buy stock
-                                message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                        + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                                sendEmail(message, True)
-                                # if checkToBuy():
-                                #     shares_to_buy = round(max_invest / ask)
-                                #     buy(sym, shares_to_buy, ask)
-                                addToWatchlist(low_watchlist, sym)
-                                exclude_hilo.append(sym)
-                req_lim += lim_increment 
-                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
-            except Exception as e:
-                print(e)
-            ctr += 1
-            continue
-        if ctr == req_lim - lim_increment:
-            url += ticker
-        else:
-            url += ',' + ticker
-        ctr += 1
-    try: 
-        r = auth.get(url)
-        json_result = r.json()
-        time.sleep(1)
-        for quote in json_result['response']['quotes']['quote']:
-            if quote['wk52lo'] != '' and quote['wk52hi'] != '':
-                low = 0.0
-                high = 0.0
-                reward = 0.0
-                sym = quote['symbol']
-                if sym not in exclude_hilo:
-                    ask = float(quote['ask'])
-                    if ask >= .01:
-                        low = float(quote['wk52lo'])
-                        high = round(float(quote['wk52hi']), 4)
-                        if low != 0 and high != 0:
-                            reward = ((high - low) / low) * 100
-                    if low == 0:
-                        low = .001
-                    rate_from_low = (ask - low) / low
-                    approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                    if approach_low:
-                        # send email to buy stock
-                        message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                        sendEmail(message, True)
-                        # if checkToBuy():
-                        #     shares_to_buy = round(max_invest / ask)
-                        #     buy(sym, shares_to_buy, ask)
-                        addToWatchlist(low_watchlist, sym)
-                        exclude_hilo.append(sym)
-        #sendEmail(message, True)            
-    except Exception as e:
-        print(e)
+# def checkHiLo():
+#     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
+#     ctr = 0
+#     req_lim = 400
+#     lim_increment = 400
+#     message = '\n'
+#     for ticker in ticker_list_condensed:
+#         if ctr == req_lim:
+#             try:
+#                 r = auth.get(url)
+#                 json_result = r.json()
+#                 time.sleep(1)
+#                 for quote in json_result['response']['quotes']['quote']:
+#                     if quote['wk52lo'] != '' and quote['wk52hi'] != '':
+#                         low = 0.0
+#                         high = 0.0
+#                         reward = 0.0
+#                         sym = quote['symbol']
+#                         if sym not in exclude_hilo:
+#                             ask = float(quote['ask'])
+#                             if ask >= .01:
+#                                 low = round(float(quote['wk52lo']), 4)
+#                                 high = round(float(quote['wk52hi']), 4)
+#                                 if low != 0 and high != 0:
+#                                     reward = ((high - low) / low) * 100
+#                             if low == 0:
+#                                 low = .001
+#                             rate_from_low = (ask - low) / low
+#                             approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+#                             if approach_low:
+#                                 # send email to buy stock
+#                                 message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                         + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+#                                 sendEmail(message, True)
+#                                 # if checkToBuy():
+#                                 #     shares_to_buy = round(max_invest / ask)
+#                                 #     buy(sym, shares_to_buy, ask)
+#                                 addToWatchlist(low_watchlist, sym)
+#                                 exclude_hilo.append(sym)
+#                 req_lim += lim_increment 
+#                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+#             except Exception as e:
+#                 print(e)
+#             ctr += 1
+#             continue
+#         if ctr == req_lim - lim_increment:
+#             url += ticker
+#         else:
+#             url += ',' + ticker
+#         ctr += 1
+#     try: 
+#         r = auth.get(url)
+#         json_result = r.json()
+#         time.sleep(1)
+#         for quote in json_result['response']['quotes']['quote']:
+#             if quote['wk52lo'] != '' and quote['wk52hi'] != '':
+#                 low = 0.0
+#                 high = 0.0
+#                 reward = 0.0
+#                 sym = quote['symbol']
+#                 if sym not in exclude_hilo:
+#                     ask = float(quote['ask'])
+#                     if ask >= .01:
+#                         low = float(quote['wk52lo'])
+#                         high = round(float(quote['wk52hi']), 4)
+#                         if low != 0 and high != 0:
+#                             reward = ((high - low) / low) * 100
+#                     if low == 0:
+#                         low = .001
+#                     rate_from_low = (ask - low) / low
+#                     approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+#                     if approach_low:
+#                         # send email to buy stock
+#                         message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                 + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+#                         sendEmail(message, True)
+#                         # if checkToBuy():
+#                         #     shares_to_buy = round(max_invest / ask)
+#                         #     buy(sym, shares_to_buy, ask)
+#                         addToWatchlist(low_watchlist, sym)
+#                         exclude_hilo.append(sym)
+#         #sendEmail(message, True)            
+#     except Exception as e:
+#         print(e)
 
 def sendEmail(message, public):
     if len(message) > 10:
@@ -540,17 +527,15 @@ while running:
     except Exception as e:
         print(e)
 
-    # getting tickers
     try:
-        if clockJson != 'pre':
-            ticker_list = []
-            company_list = open(cfg.file['company_list']) 
-            for line in company_list:
-                if line == '"Symbol","Name","LastSale","MarketCap","IPOyear","Sector","industry","Summary Quote",\n':
-                    continue
-                ticker = line.split(',')[0].replace('"', '')
-                if len(ticker) <= 4:
-                    ticker_list.append(line.split(',')[0].replace('"', ''))
+        ticker_list = []
+        company_list = open(cfg.file['company_list']) 
+        for line in company_list:
+            if line == 'Symbol,Name,Last Sale,Net Change,% Change,Market Cap,Country,IPO Year,Volume,Sector,Industry':
+                continue
+            ticker = line.split(',')[0]
+            if len(ticker) <= 4:
+                ticker_list.append(ticker)
     except Exception as e:
         print(e)
 
