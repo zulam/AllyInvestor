@@ -26,10 +26,9 @@ price_max = 10
 price_min = .001
 sellTop = .25
 sellBottom = -.05
-sym_ign = ['FNCL', 'GLD', 'IEFA', 'ILTB' , 'PICK', 'SCHD', 'SCHH', 'VGT', 'VIG', 'VOOV', 'XBI']
 early_gainers_watchlist = 'GAINERS'
 #low_watchlist = 'LOW'
-acct_val = 1000
+#acct_val = 1000
 #max_invest = acct_val / 20
 
 def begin() :
@@ -333,7 +332,7 @@ def checkGains():
     ctr = 0
     req_lim = 400
     lim_increment = 400
-    gain_check = .25
+    gain_check = .5
     #vol_check = 1
     for ticker in ticker_list_condensed:
         if ctr == req_lim:
