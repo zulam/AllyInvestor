@@ -482,7 +482,7 @@ def sendEmail(message, public):
                 if public:
                     msg['To'] = ', '.join(cfg.email['receivers'])
                 else:
-                    msg['To'] = cfg.email['receiver']
+                    msg['To'] = ', '.join(cfg.email['receiver'])
                 msg.set_content(message)
                 smtp_server = "smtp.gmail.com"
                 port = 587
