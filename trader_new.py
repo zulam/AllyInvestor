@@ -22,7 +22,7 @@ exclude_opn_gainers = []
 exclude_sold = []
 exclude_close_open = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
-rate_lim = .05
+rate_lim = .01
 price_max = 10
 price_min = .001
 sellTop = .25
@@ -468,18 +468,29 @@ def checkHiLo():
                 if sym not in exclude_hilo:
                     ask = float(quote['ask'])
                     if ask >= .01:
-                        low = float(quote['wk52lo'])
+                        low = round(float(quote['wk52lo']), 4)
                         high = round(float(quote['wk52hi']), 4)
                         if low != 0 and high != 0:
                             reward = ((high - low) / low) * 100
                     if low == 0:
                         low = .001
                     rate_from_low = (ask - low) / low
+                    rate_from_high = (high - ask) / high
                     approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+                    approach_high = (rate_from_high < rate_lim and high != 0 and rate_from_high != -1)
                     if approach_low:
                         # send email to buy stock
                         message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                 + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+                        sendEmail(message, True)
+                        # if checkToBuy():
+                        #     shares_to_buy = round(max_invest / ask)
+                        #     buy(sym, shares_to_buy, ask)
+                        addToWatchlist(low_watchlist, sym)
+                        exclude_hilo.append(sym)
+                    if approach_high:
+                        message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
                         sendEmail(message, True)
                         # if checkToBuy():
                         #     shares_to_buy = round(max_invest / ask)
