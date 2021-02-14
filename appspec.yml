@@ -1,8 +1,11 @@
 version: 0.0
 os: linux
 files:
+    - source: /
+      destination: /
 hooks:
   BeforeInstall:
   AfterInstall:
   ApplicationStart:
   ApplicationStop:
+
