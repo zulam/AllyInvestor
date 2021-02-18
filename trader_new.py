@@ -711,7 +711,7 @@ while running:
             #news_thread = threading.Thread(target=checkNews)
             #hi_lo_thread = threading.Thread(target=checkHiLo)
             opn_gainers_thread = threading.Thread(target=checkGainFromOpen)
-            vol_gainers_thread = threading.Thread(target=checkVolGainers, args=(prior_min))
+            vol_gainers_thread = threading.Thread(target=checkVolGainers, args=(prior_min,))
             gainers_thread.start()
             #news_thread.start()
             #hi_lo_thread.start()
