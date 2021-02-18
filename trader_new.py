@@ -11,10 +11,13 @@ import threading
 from queue import Queue
 
 # initialize
+prior_min = 0 
 email_queue = []
 email_sent = []
 ticker_list_condensed = []
 close_open_gainers = []
+early_gainers = []
+early_gainers_vol = {}
 exclude_news = []
 exclude_gains = []
 exclude_hilo = []
@@ -34,6 +37,7 @@ high_watchlist = 'HIGH'
 gainers_watchlist = 'GAINERS'
 vol_gainers_watchlist = 'VOL GAINERS'
 watchlists = [early_gainers_watchlist, vol_gainers_watchlist]
+
 
 #acct_val = 1000
 #max_invest = acct_val / 20
@@ -305,6 +309,8 @@ def checkEarlyGainers():
                                                 + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
                                     sendEmail(message, True) 
                                     addToWatchlist(early_gainers_watchlist, sym)
+                                    early_gainers.append(sym)
+                                    early_gainers_vol[sym] = 0
                                     exclude_close_open.append(sym)
                 req_lim += lim_increment 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
@@ -330,6 +336,8 @@ def checkEarlyGainers():
                                         + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
                             sendEmail(message, True) 
                             addToWatchlist(early_gainers_watchlist, sym)
+                            early_gainers.append(sym)
+                            early_gainers_vol[sym] = 0
                             exclude_close_open.append(sym)
         #sendEmail(message, True)            
     except Exception as e:
@@ -560,15 +568,21 @@ def checkGainFromOpen():
     except Exception as e:
         print(e)
 
-def checkVolGainers():
+def checkVolGainers(prior_min):
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
     ctr = 0
-    req_lim = 400
-    lim_increment = 400
     message = '\n'
     target_rate = .1
-    for ticker in ticker_list_condensed:
-        if ctr == req_lim:
+    curr_min = datetime.now().minute
+    while curr_min == prior_min:
+        curr_min = datetime.now().minute
+        if curr_min > prior_min:
+            for ticker in early_gainers:
+                if ctr == 0:
+                    url += ticker
+                else:
+                    url += ',' + ticker
+                ctr += 1 
             try:
                 res = auth.get(url)
                 json = res.json()
@@ -576,54 +590,28 @@ def checkVolGainers():
                 for quote in json['response']['quotes']['quote']:
                     sym = quote['symbol']
                     ask = quote['ask']
-                    vol_tic = quote['incr_vl']
+                    vol = quote['vl']
                     tick_dir = quote['tradetick']
-                    trend = quote['trend']
                     vol_30_day = quote['adv_30']
-                    if vol_tic != '' and vol_30_day != '' and vol_tic != '0' and vol_30_day != '0':
-                        vol_perc = float(vol_tic) / float(vol_30_day)
-                        if vol_perc >= target_rate and tick_dir == 'u' and trend == 'u':
-                            message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                    + str(round(vol_perc, 4) * 100) + '% vol on tic.'
-                            sendEmail(message, True)
-                            # if checkToBuy():
-                            #     shares_to_buy = round(max_invest / ask)
-                            #     buy(sym, shares_to_buy, ask)
-                            addToWatchlist(vol_gainers_watchlist, sym)
-                            exclude_vol_gainers.append(sym)
-                req_lim += lim_increment 
+                    if vol != '' and vol_30_day != '' and vol != '0' and vol_30_day != '0':
+                        if float(early_gainers_vol[sym]) == 0:
+                            early_gainers_vol[sym] = float(vol) - float(early_gainers_vol[sym])
+                        else:
+                            early_gainers_vol[sym] = float(vol) - float(early_gainers_vol[sym])
+                            vol_perc = early_gainers_vol[sym] / float(vol_30_day)
+                            if vol_perc >= target_rate and tick_dir == 'u' and float(early_gainers_vol[sym]) != 0:
+                                message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                        + str(round(vol_perc, 4) * 100) + '% of 30 day avg vol on tick.'
+                                sendEmail(message, True)
+                                # if checkToBuy():
+                                #     shares_to_buy = round(max_invest / ask)
+                                #     buy(sym, shares_to_buy, ask)
+                                addToWatchlist(vol_gainers_watchlist, sym)
+                                exclude_vol_gainers.append(sym)
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
             except Exception as e:
-                print(e)
-        if ctr == req_lim - lim_increment:
-            url += ticker
-        else:
-            url += ',' + ticker
-        ctr += 1  
-    try:
-        res = auth.get(url)
-        json = res.json()
-        time.sleep(1)
-        for quote in json['response']['quotes']['quote']:
-            sym = quote['symbol']
-            ask = quote['ask']
-            vol_tic = quote['incr_vl']
-            tick_dir = quote['tradetick']
-            trend = quote['trend']
-            vol_30_day = quote['adv_30']
-            if vol_tic != '' and vol_30_day != '' and vol_tic != '0' and vol_30_day != '0':
-                vol_perc = float(vol_tic) / float(vol_30_day)
-                if vol_perc >= target_rate and tick_dir == 'u' and trend == 'u':
-                    message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
-                            + str(round(vol_perc, 4) * 100) + '% vol on tic.'
-                    sendEmail(message, True)
-                    # if checkToBuy():
-                    #     shares_to_buy = round(max_invest / ask)
-                    #     buy(sym, shares_to_buy, ask)
-                    addToWatchlist(vol_gainers_watchlist, sym)
-                    exclude_vol_gainers.append(sym)
-    except Exception as e:
-        print(e)
+                print(e) 
+    prior_min = curr_min
 
 def sendEmail(message, public):
     if len(message) > 10:
