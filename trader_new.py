@@ -19,6 +19,7 @@ exclude_news = []
 exclude_gains = []
 exclude_hilo = []
 exclude_opn_gainers = []
+exclude_vol_gainers = []
 exclude_sold = []
 exclude_close_open = []
 marketClockUrl = 'https://api.tradeking.com/v1/market/clock.json'
@@ -31,7 +32,8 @@ early_gainers_watchlist = 'EARLYGAINERS'
 low_watchlist = 'LOW'
 high_watchlist = 'HIGH'
 gainers_watchlist = 'GAINERS'
-watchlists = [early_gainers_watchlist, low_watchlist, high_watchlist, gainers_watchlist]
+vol_gainers_watchlist = 'VOL GAINERS'
+watchlists = [early_gainers_watchlist, vol_gainers_watchlist]
 
 #acct_val = 1000
 #max_invest = acct_val / 20
@@ -429,7 +431,7 @@ def checkHiLo():
                                 # send email to buy stock
                                 message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                         + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                                sendEmail(message, True)
+                                #sendEmail(message, True)
                                 # if checkToBuy():
                                 #     shares_to_buy = round(max_invest / ask)
                                 #     buy(sym, shares_to_buy, ask)
@@ -438,7 +440,7 @@ def checkHiLo():
                             if approach_high:
                                 message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                         + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
-                                sendEmail(message, True)
+                                #sendEmail(message, True)
                                 # if checkToBuy():
                                 #     shares_to_buy = round(max_invest / ask)
                                 #     buy(sym, shares_to_buy, ask)
@@ -482,7 +484,7 @@ def checkHiLo():
                         # send email to buy stock
                         message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                 + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                        sendEmail(message, True)
+                        #sendEmail(message, True)
                         # if checkToBuy():
                         #     shares_to_buy = round(max_invest / ask)
                         #     buy(sym, shares_to_buy, ask)
@@ -491,7 +493,7 @@ def checkHiLo():
                     if approach_high:
                         message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
                                 + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
-                        sendEmail(message, True)
+                        #sendEmail(message, True)
                         # if checkToBuy():
                         #     shares_to_buy = round(max_invest / ask)
                         #     buy(sym, shares_to_buy, ask)
@@ -522,7 +524,7 @@ def checkGainFromOpen():
                     if perc_from_open >= targ_rate:
                         message = '\n\n' + 'TEST: Buy ' + sym + ' at ' + str(ask) + '\n' \
                                 + str(round(perc_from_open, 4) * 100) + '% gain since open.'
-                        sendEmail(message, True)
+                        #sendEmail(message, True)
                         # if checkToBuy():
                         #     shares_to_buy = round(max_invest / ask)
                         #     buy(sym, shares_to_buy, ask)
@@ -549,12 +551,77 @@ def checkGainFromOpen():
             if perc_from_open >= targ_rate:
                 message = '\n\n' + 'TEST: Buy ' + sym + ' at ' + str(ask) + '\n' \
                         + str(round(perc_from_open, 4) * 100) + '% gain since open.'
-                sendEmail(message, True)
+                #sendEmail(message, True)
                 # if checkToBuy():
                 #     shares_to_buy = round(max_invest / ask)
                 #     buy(sym, shares_to_buy, ask)
                 addToWatchlist(gainers_watchlist, sym)
                 exclude_opn_gainers.append(sym)
+    except Exception as e:
+        print(e)
+
+def checkVolGainers():
+    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+    ctr = 0
+    req_lim = 400
+    lim_increment = 400
+    message = '\n'
+    target_rate = .1
+    for ticker in ticker_list_condensed:
+        if ctr == req_lim:
+            try:
+                res = auth.get(url)
+                json = res.json()
+                time.sleep(1)
+                for quote in json['response']['quotes']['quote']:
+                    sym = quote['symbol']
+                    ask = quote['ask']
+                    vol_tic = quote['incr_vl']
+                    tick_dir = quote['tradetick']
+                    trend = quote['trend']
+                    vol_30_day = quote['adv_30']
+                    if vol_tic != '' and vol_30_day != '' and vol_tic != '0' and vol_30_day != '0':
+                        vol_perc = float(vol_tic) / float(vol_30_day)
+                        if vol_perc >= target_rate and tick_dir == 'u' and trend == 'u':
+                            message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
+                                    + str(round(vol_perc, 4) * 100) + '% vol on tic.'
+                            sendEmail(message, True)
+                            # if checkToBuy():
+                            #     shares_to_buy = round(max_invest / ask)
+                            #     buy(sym, shares_to_buy, ask)
+                            addToWatchlist(vol_gainers_watchlist, sym)
+                            exclude_vol_gainers.append(sym)
+                req_lim += lim_increment 
+                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+            except Exception as e:
+                print(e)
+        if ctr == req_lim - lim_increment:
+            url += ticker
+        else:
+            url += ',' + ticker
+        ctr += 1  
+    try:
+        res = auth.get(url)
+        json = res.json()
+        time.sleep(1)
+        for quote in json['response']['quotes']['quote']:
+            sym = quote['symbol']
+            ask = quote['ask']
+            vol_tic = quote['incr_vl']
+            tick_dir = quote['tradetick']
+            trend = quote['trend']
+            vol_30_day = quote['adv_30']
+            if vol_tic != '' and vol_30_day != '' and vol_tic != '0' and vol_30_day != '0':
+                vol_perc = float(vol_tic) / float(vol_30_day)
+                if vol_perc >= target_rate and tick_dir == 'u' and trend == 'u':
+                    message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
+                            + str(round(vol_perc, 4) * 100) + '% vol on tic.'
+                    sendEmail(message, True)
+                    # if checkToBuy():
+                    #     shares_to_buy = round(max_invest / ask)
+                    #     buy(sym, shares_to_buy, ask)
+                    addToWatchlist(vol_gainers_watchlist, sym)
+                    exclude_vol_gainers.append(sym)
     except Exception as e:
         print(e)
 
@@ -629,7 +696,7 @@ while running:
         try:
             fillCondensed()
             readFromMasIfEmpty()
-            checkNews()
+            #checkNews()
         except Exception as e:
             print(e)
         print('close cycle done')
@@ -643,7 +710,7 @@ while running:
     if clockJson == 'pre' or clockJson == 'after':
         try:
             readFromMasIfEmpty()
-            checkNews()
+            #checkNews()
         except Exception as e:
             print(e)
         print('pre cycle done')
@@ -653,18 +720,21 @@ while running:
         try: 
             readFromMasIfEmpty()
             gainers_thread = threading.Thread(target=checkGains)
-            news_thread = threading.Thread(target=checkNews)
-            hi_lo_thread = threading.Thread(target=checkHiLo)
+            #news_thread = threading.Thread(target=checkNews)
+            #hi_lo_thread = threading.Thread(target=checkHiLo)
             opn_gainers_thread = threading.Thread(target=checkGainFromOpen)
+            vol_gainers_thread = threading.Thread(target=checkVolGainers)
             gainers_thread.start()
-            news_thread.start()
-            hi_lo_thread.start()
+            #news_thread.start()
+            #hi_lo_thread.start()
             opn_gainers_thread.start()
+            vol_gainers_thread.start()
             gainers_thread.join()
             checkEarlyGainers()
-            news_thread.join()
-            hi_lo_thread.join()
+            #news_thread.join()
+            #hi_lo_thread.join()
             opn_gainers_thread.join()
+            vol_gainers_thread.join()
         except Exception as e:
             print(e)
         print('open cycle done')
