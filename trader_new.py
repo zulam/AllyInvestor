@@ -11,7 +11,6 @@ import threading
 from queue import Queue
 
 # initialize
-prior_min = 0 
 email_queue = []
 email_sent = []
 ticker_list_condensed = []
@@ -37,8 +36,7 @@ high_watchlist = 'HIGH'
 gainers_watchlist = 'GAINERS'
 vol_gainers_watchlist = 'VOL GAINERS'
 watchlists = [early_gainers_watchlist, vol_gainers_watchlist]
-
-
+prior_min = 0
 #acct_val = 1000
 #max_invest = acct_val / 20
 
@@ -568,13 +566,14 @@ def checkGainFromOpen():
     except Exception as e:
         print(e)
 
-def checkVolGainers(prior_min):
+def checkVolGainers():
+    global prior_min
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
     ctr = 0
     message = '\n'
     target_rate = .1
     curr_min = datetime.now().minute
-    while curr_min == prior_min:
+    while curr_min >= prior_min:
         curr_min = datetime.now().minute
         if curr_min > prior_min:
             for ticker in early_gainers:
@@ -611,6 +610,7 @@ def checkVolGainers(prior_min):
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
             except Exception as e:
                 print(e) 
+            break
     prior_min = curr_min
 
 def sendEmail(message, public):
@@ -711,7 +711,7 @@ while running:
             #news_thread = threading.Thread(target=checkNews)
             #hi_lo_thread = threading.Thread(target=checkHiLo)
             opn_gainers_thread = threading.Thread(target=checkGainFromOpen)
-            vol_gainers_thread = threading.Thread(target=checkVolGainers, args=(prior_min,))
+            vol_gainers_thread = threading.Thread(target=checkVolGainers)
             gainers_thread.start()
             #news_thread.start()
             #hi_lo_thread.start()
