@@ -16,7 +16,6 @@ email_sent = []
 ticker_list_condensed = []
 close_open_gainers = []
 early_gainers = []
-early_gainers_vol = {}
 exclude_news = []
 exclude_gains = []
 exclude_hilo = []
@@ -31,14 +30,126 @@ price_min = .001
 sellTop = .25
 sellBottom = -.05
 early_gainers_watchlist = 'EARLYGAINERS'
-low_watchlist = 'LOW'
-high_watchlist = 'HIGH'
-gainers_watchlist = 'GAINERS'
-vol_gainers_watchlist = 'VOL GAINERS'
-watchlists = [early_gainers_watchlist, vol_gainers_watchlist]
+# low_watchlist = 'LOW'
+# high_watchlist = 'HIGH'
+#gainers_watchlist = 'GAINERS'
+#vol_gainers_watchlist = 'VOL GAINERS'
+watchlists = [early_gainers_watchlist]
 prior_min = 0
+candles = {}
 #acct_val = 1000
 #max_invest = acct_val / 20
+
+class candle:
+    def __init__(self, opn, close, high, low, vol):
+        self.open = opn
+        self.close = close
+        self.high = high
+        self.low = low
+        self.vol = vol
+
+def checkBullishHammer():
+    for key, val in candles.items():
+        try:
+            end_index = len(val) - 1
+            if end_index >= 3:
+                if val[end_index - 1].close < val[end_index - 1].open and val[end_index - 2].close < val[end_index - 2].open and val[end_index - 3].close < val[end_index - 3].open:
+                    if val[end_index].close >= val[end_index].open and (val[end_index].close - val[end_index].open) < (val[end_index].open - val[end_index].low):
+                        message = '\n\n' + 'Bullish Hammer: ' + key  
+                        sendEmail(message, True)
+        except Exception as e:
+            print(e)
+
+def checkMorningStar():
+    for key, val in candles.items():
+        try:
+            end_index = len(val) - 1
+            if end_index >= 4:
+                if val[end_index - 4].close < val[end_index - 4].open and val[end_index - 3].close < val[end_index - 3].open and val[end_index - 2].close < val[end_index - 2].open:
+                    if val[end_index - 1].close <= val[end_index - 1].open and val[end_index - 1].open - val[end_index - 1].close < .5 * (val[end_index - 1].close - val[end_index - 1].low):
+                        if val[end_index].close > val[end_index].open:
+                            message = '\n\n' + 'Morning Star: ' + key  
+                            sendEmail(message, True)
+        except Exception as e:
+            print(e)
+
+def checkBullishEngulfing():
+    for key, val in candles.items():
+        try:
+            end_index = len(val) - 1
+            if end_index >= 3:
+                if val[end_index - 3].close < val[end_index - 3].open and val[end_index - 2].close < val[end_index - 2].open and val[end_index - 1].close < val[end_index - 1].open:
+                    if val[end_index].close > val[end_index].open:
+                        if val[end_index].high > val[end_index - 1].high and val[end_index].low < val[end_index - 1].low and val[end_index].open < val[end_index - 1].close and val[end_index].close > val[end_index - 1].open:
+                            message = '\n\n' + 'Bullish Engulfing: ' + key  
+                            sendEmail(message, True)
+        except Exception as e:
+            print(e)
+
+def checkBullishDoji():
+    for key, val in candles.items():
+        try:
+            end_index = len(val) - 1
+            if end_index >= 3:
+                if val[end_index - 3].close < val[end_index - 3].open and val[end_index - 2].close < val[end_index - 2].open and val[end_index - 1].close < val[end_index - 1].open:
+                    if val[end_index].close > val[end_index].open and val[end_index].high - val[end_index].low > 10 * (val[end_index].close - val[end_index].open):
+                        message = '\n\n' + 'Bullish Doji: ' + key  
+                        sendEmail(message, True)
+        except Exception as e:
+            print(e)
+
+def createMinuteCandles():
+    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+    ctr = 0
+    curr_min = datetime.now().minute
+    opening_min = True
+    min_candles = {}
+    for ticker in early_gainers:
+        if ctr == 0:
+            url += ticker
+        else:
+            url += ',' + ticker
+        ctr += 1 
+    while datetime.now().minute == curr_min:
+        try:
+            res = auth.get(url)
+            json = res.json()
+            time.sleep(1)
+            for quote in json['response']['quotes']['quote']:
+                if opening_min:
+                    sym = quote['symbol']
+                    ask = float(quote['ask'])
+                    vol = float(quote['vl'])
+                    min_candles[sym] = candle(ask, ask, ask, ask, vol)
+                else:
+                    sym = quote['symbol']
+                    ask = float(quote['ask'])
+                    vol = float(quote['vl'])
+                    if ask > min_candles['symbol'].high:
+                        min_candles['symbol'].high = ask 
+                    elif ask < min_candles['symbol'].low:
+                        min_candles['symbol'].low = ask 
+            opening_min = False
+        except Exception as e:
+            print(e) 
+    try:
+        res = auth.get(url)
+        value = res.json()
+        for quote in value['response']['quotes']['quote']:
+            sym = quote['symbol']
+            ask = float(quote['ask'])
+            vol = float(quote['vl']) - min_candles[sym].vol
+            min_candles[sym].vol = vol
+            min_candles[sym].close = ask   
+            candles[sym].append(min_candles[sym]) 
+    except Exception as e:
+        print(e)
+
+def candlestickAnalysis():
+    checkBullishHammer()
+    checkMorningStar()
+    checkBullishEngulfing()
+    checkBullishDoji()
 
 def begin() :
     owned_url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/balances.json'
@@ -283,63 +394,65 @@ def checkNews():
     except Exception as e:
         print(e)
 
-def checkEarlyGainers():
-    message = '\n'
-    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
-    ctr = 0
-    req_lim = 400
-    lim_increment = 400
-    gain_check = .04
-    for ticker in close_open_gainers:
-        if ctr == req_lim:
-            try:
-                r = auth.get(url)
-                json_result = r.json()
-                time.sleep(1)
-                for quote in json_result['response']['quotes']['quote']:
-                    if quote['ask'] != '' and quote['opn'] != '':
-                        if float(quote['opn']) != 0:
-                            percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
-                            sym = quote['symbol']
-                            if sym not in exclude_close_open:
-                                if percent_change >= gain_check:
-                                    message = '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                                + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                                    sendEmail(message, True) 
-                                    addToWatchlist(early_gainers_watchlist, sym)
-                                    early_gainers.append(sym)
-                                    early_gainers_vol[sym] = 0
-                                    exclude_close_open.append(sym)
-                req_lim += lim_increment 
-                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
-            except Exception as e:  
-                print(e)  
-        if ctr == req_lim - lim_increment:
-            url += ticker
-        else:
-            url += ',' + ticker
-        ctr += 1
-    try:
-        r = auth.get(url)
-        json_result = r.json()
-        time.sleep(1)
-        for quote in json_result['response']['quotes']['quote']:
-            if quote['ask'] != '' and quote['opn'] != '':
-                if float(quote['opn']) != 0:
-                    percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
-                    sym = quote['symbol']
-                    if sym not in exclude_close_open:
-                        if percent_change >= gain_check:
-                            message = '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                        + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
-                            sendEmail(message, True) 
-                            addToWatchlist(early_gainers_watchlist, sym)
-                            early_gainers.append(sym)
-                            early_gainers_vol[sym] = 0
-                            exclude_close_open.append(sym)
-        #sendEmail(message, True)            
-    except Exception as e:
-        print(e)
+# def checkEarlyGainers():
+#     message = '\n'
+#     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
+#     ctr = 0
+#     req_lim = 400
+#     lim_increment = 400
+#     #gain_check = .04
+#     for ticker in close_open_gainers:
+#         if ctr == req_lim:
+#             try:
+#                 r = auth.get(url)
+#                 json_result = r.json()
+#                 time.sleep(1)
+#                 for quote in json_result['response']['quotes']['quote']:
+#                     if quote['ask'] != '' and quote['opn'] != '':
+#                         if float(quote['opn']) != 0:
+#                             percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
+#                             sym = quote['symbol']
+#                             if sym not in exclude_close_open:
+#                                 #if percent_change >= gain_check:
+#                                 message = '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+#                                             + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+#                                 sendEmail(message, True) 
+#                                 addToWatchlist(early_gainers_watchlist, sym)
+#                                 early_gainers.append(sym)
+#                                 early_gainers_vol[sym] = 0
+#                                 exclude_close_open.append(sym)
+#                                 candles[sym] = []
+#                 req_lim += lim_increment 
+#                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
+#             except Exception as e:  
+#                 print(e)  
+#         if ctr == req_lim - lim_increment:
+#             url += ticker
+#         else:
+#             url += ',' + ticker
+#         ctr += 1
+#     try:
+#         r = auth.get(url)
+#         json_result = r.json()
+#         time.sleep(1)
+#         for quote in json_result['response']['quotes']['quote']:
+#             if quote['ask'] != '' and quote['opn'] != '':
+#                 if float(quote['opn']) != 0:
+#                     percent_change = (float(quote['ask']) - float(quote['opn'])) / float(quote['opn'])
+#                     sym = quote['symbol']
+#                     if sym not in exclude_close_open:
+#                         #if percent_change >= gain_check:
+#                         message = '\n\n' + 'BUY ' + sym + ' at ' + str(quote['ask']) + '\n' \
+#                                     + str(round(float(percent_change), 4) * 100) + '% gain since open after 9:30 spike'
+#                         sendEmail(message, True) 
+#                         addToWatchlist(early_gainers_watchlist, sym)
+#                         early_gainers.append(sym)
+#                         early_gainers_vol[sym] = 0
+#                         exclude_close_open.append(sym)
+#                         candles[sym] = []
+#         #sendEmail(message, True)            
+#     except Exception as e:
+#         print(e)
 
 def checkGains():
     #message = '\n'
@@ -362,13 +475,15 @@ def checkGains():
                         # avg_vol = float(quote['adv_30'])
                         #vol_chg = (vol - avg_vol) / avg_vol
                         sym = quote['symbol']
-                        if sym not in exclude_gains:
+                        if sym not in exclude_close_open:
                             if percent_change >= gain_check:
-                                # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                                #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                                #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
-                                # addToWatchlist(sym)
-                                exclude_gains.append(sym)
+                                message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                        + str(round(float(percent_change), 4) * 100) + '% gain since prior day close'
+                                sendEmail(message, True) 
+                                addToWatchlist(early_gainers_watchlist, sym)
+                                early_gainers.append(sym)
+                                exclude_close_open.append(sym)
+                                candles[sym] = []
                                 close_open_gainers.append(sym)
                 req_lim += lim_increment 
                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='   
@@ -390,228 +505,230 @@ def checkGains():
                 # avg_vol = float(quote['adv_30'])
                 #vol_chg = (vol - avg_vol) / avg_vol
                 sym = quote['symbol']
-                if sym not in exclude_gains:
+                if sym not in exclude_close_open:
                     if percent_change >= gain_check:
-                        # message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
-                        #             + str(round(float(percent_change), 4) * 100) + '% gain since close \nVolume up ' \
-                        #             + str(round(float(vol_chg), 4) * 100) + '% from 30 day avg'
-                        # addToWatchlist(sym)
-                        exclude_gains.append(sym)
+                        message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                + str(round(float(percent_change), 4) * 100) + '% gain since prior day close'
+                        sendEmail(message, True) 
+                        addToWatchlist(early_gainers_watchlist, sym)
+                        early_gainers.append(sym)
+                        exclude_close_open.append(sym)
+                        candles[sym] = []
                         close_open_gainers.append(sym)
         #sendEmail(message)            
     except Exception as e:
         print(e)
 
-def checkHiLo():
-    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
-    ctr = 0
-    req_lim = 400
-    lim_increment = 400
-    message = '\n'
-    for ticker in ticker_list_condensed:
-        if ctr == req_lim:
-            try:
-                r = auth.get(url)
-                json_result = r.json()
-                time.sleep(1)
-                for quote in json_result['response']['quotes']['quote']:
-                    if quote['wk52lo'] != '' and quote['wk52hi'] != '':
-                        low = 0.0
-                        high = 0.0
-                        reward = 0.0
-                        sym = quote['symbol']
-                        if sym not in exclude_hilo:
-                            ask = float(quote['ask'])
-                            if ask >= .01:
-                                low = round(float(quote['wk52lo']), 4)
-                                high = round(float(quote['wk52hi']), 4)
-                                if low != 0 and high != 0:
-                                    reward = ((high - low) / low) * 100
-                            if low == 0:
-                                low = .001
-                            rate_from_low = (ask - low) / low
-                            rate_from_high = (high - ask) / high
-                            approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                            approach_high = (rate_from_high < rate_lim and high != 0 and rate_from_high != -1)
-                            if approach_low:
-                                # send email to buy stock
-                                message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                        + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                                #sendEmail(message, True)
-                                # if checkToBuy():
-                                #     shares_to_buy = round(max_invest / ask)
-                                #     buy(sym, shares_to_buy, ask)
-                                addToWatchlist(low_watchlist, sym)
-                                exclude_hilo.append(sym)
-                            if approach_high:
-                                message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                        + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
-                                #sendEmail(message, True)
-                                # if checkToBuy():
-                                #     shares_to_buy = round(max_invest / ask)
-                                #     buy(sym, shares_to_buy, ask)
-                                addToWatchlist(low_watchlist, sym)
-                                exclude_hilo.append(sym)
-                req_lim += lim_increment 
-                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
-            except Exception as e:
-                print(e)
-            ctr += 1
-            continue
-        if ctr == req_lim - lim_increment:
-            url += ticker
-        else:
-            url += ',' + ticker
-        ctr += 1
-    try: 
-        r = auth.get(url)
-        json_result = r.json()
-        time.sleep(1)
-        for quote in json_result['response']['quotes']['quote']:
-            if quote['wk52lo'] != '' and quote['wk52hi'] != '':
-                low = 0.0
-                high = 0.0
-                reward = 0.0
-                sym = quote['symbol']
-                if sym not in exclude_hilo:
-                    ask = float(quote['ask'])
-                    if ask >= .01:
-                        low = round(float(quote['wk52lo']), 4)
-                        high = round(float(quote['wk52hi']), 4)
-                        if low != 0 and high != 0:
-                            reward = ((high - low) / low) * 100
-                    if low == 0:
-                        low = .001
-                    rate_from_low = (ask - low) / low
-                    rate_from_high = (high - ask) / high
-                    approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
-                    approach_high = (rate_from_high < rate_lim and high != 0 and rate_from_high != -1)
-                    if approach_low:
-                        # send email to buy stock
-                        message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
-                        #sendEmail(message, True)
-                        # if checkToBuy():
-                        #     shares_to_buy = round(max_invest / ask)
-                        #     buy(sym, shares_to_buy, ask)
-                        addToWatchlist(low_watchlist, sym)
-                        exclude_hilo.append(sym)
-                    if approach_high:
-                        message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
-                        #sendEmail(message, True)
-                        # if checkToBuy():
-                        #     shares_to_buy = round(max_invest / ask)
-                        #     buy(sym, shares_to_buy, ask)
-                        addToWatchlist(low_watchlist, sym)
-                        exclude_hilo.append(sym)
-        #sendEmail(message, True)            
-    except Exception as e:
-        print(e)
+# def checkHiLo():
+#     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
+#     ctr = 0
+#     req_lim = 400
+#     lim_increment = 400
+#     message = '\n'
+#     for ticker in ticker_list_condensed:
+#         if ctr == req_lim:
+#             try:
+#                 r = auth.get(url)
+#                 json_result = r.json()
+#                 time.sleep(1)
+#                 for quote in json_result['response']['quotes']['quote']:
+#                     if quote['wk52lo'] != '' and quote['wk52hi'] != '':
+#                         low = 0.0
+#                         high = 0.0
+#                         reward = 0.0
+#                         sym = quote['symbol']
+#                         if sym not in exclude_hilo:
+#                             ask = float(quote['ask'])
+#                             if ask >= .01:
+#                                 low = round(float(quote['wk52lo']), 4)
+#                                 high = round(float(quote['wk52hi']), 4)
+#                                 if low != 0 and high != 0:
+#                                     reward = ((high - low) / low) * 100
+#                             if low == 0:
+#                                 low = .001
+#                             rate_from_low = (ask - low) / low
+#                             rate_from_high = (high - ask) / high
+#                             approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+#                             approach_high = (rate_from_high < rate_lim and high != 0 and rate_from_high != -1)
+#                             if approach_low:
+#                                 # send email to buy stock
+#                                 message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                         + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+#                                 #sendEmail(message, True)
+#                                 # if checkToBuy():
+#                                 #     shares_to_buy = round(max_invest / ask)
+#                                 #     buy(sym, shares_to_buy, ask)
+#                                 addToWatchlist(low_watchlist, sym)
+#                                 exclude_hilo.append(sym)
+#                             if approach_high:
+#                                 message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                         + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
+#                                 #sendEmail(message, True)
+#                                 # if checkToBuy():
+#                                 #     shares_to_buy = round(max_invest / ask)
+#                                 #     buy(sym, shares_to_buy, ask)
+#                                 addToWatchlist(low_watchlist, sym)
+#                                 exclude_hilo.append(sym)
+#                 req_lim += lim_increment 
+#                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+#             except Exception as e:
+#                 print(e)
+#             ctr += 1
+#             continue
+#         if ctr == req_lim - lim_increment:
+#             url += ticker
+#         else:
+#             url += ',' + ticker
+#         ctr += 1
+#     try: 
+#         r = auth.get(url)
+#         json_result = r.json()
+#         time.sleep(1)
+#         for quote in json_result['response']['quotes']['quote']:
+#             if quote['wk52lo'] != '' and quote['wk52hi'] != '':
+#                 low = 0.0
+#                 high = 0.0
+#                 reward = 0.0
+#                 sym = quote['symbol']
+#                 if sym not in exclude_hilo:
+#                     ask = float(quote['ask'])
+#                     if ask >= .01:
+#                         low = round(float(quote['wk52lo']), 4)
+#                         high = round(float(quote['wk52hi']), 4)
+#                         if low != 0 and high != 0:
+#                             reward = ((high - low) / low) * 100
+#                     if low == 0:
+#                         low = .001
+#                     rate_from_low = (ask - low) / low
+#                     rate_from_high = (high - ask) / high
+#                     approach_low = (rate_from_low < rate_lim and low != 0 and rate_from_low != -1)
+#                     approach_high = (rate_from_high < rate_lim and high != 0 and rate_from_high != -1)
+#                     if approach_low:
+#                         # send email to buy stock
+#                         message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                 + str(round(rate_from_low, 4) * 100) + '% from 52 week low\nReward: ' + str(reward) + '%'
+#                         #sendEmail(message, True)
+#                         # if checkToBuy():
+#                         #     shares_to_buy = round(max_invest / ask)
+#                         #     buy(sym, shares_to_buy, ask)
+#                         addToWatchlist(low_watchlist, sym)
+#                         exclude_hilo.append(sym)
+#                     if approach_high:
+#                         message = '\n\n' + 'Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                 + str(round(rate_from_high, 4) * 100) + '% from 52 week high\n'
+#                         #sendEmail(message, True)
+#                         # if checkToBuy():
+#                         #     shares_to_buy = round(max_invest / ask)
+#                         #     buy(sym, shares_to_buy, ask)
+#                         addToWatchlist(low_watchlist, sym)
+#                         exclude_hilo.append(sym)
+#         #sendEmail(message, True)            
+#     except Exception as e:
+#         print(e)
 
-def checkGainFromOpen():
-    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
-    ctr = 0
-    req_lim = 400
-    lim_increment = 400
-    message = '\n'
-    targ_rate = .20
-    for ticker in ticker_list_condensed:
-        if ctr == req_lim:
-            try:
-                res = auth.get(url)
-                json = res.json()
-                time.sleep(1)
-                for quote in json['response']['quotes']['quote']:
-                    sym = quote['symbol']
-                    ask = quote['ask']
-                    opn = quote['opn']
-                    perc_from_open = (ask - opn) / opn
-                    if perc_from_open >= targ_rate:
-                        message = '\n\n' + 'TEST: Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                + str(round(perc_from_open, 4) * 100) + '% gain since open.'
-                        #sendEmail(message, True)
-                        # if checkToBuy():
-                        #     shares_to_buy = round(max_invest / ask)
-                        #     buy(sym, shares_to_buy, ask)
-                        addToWatchlist(gainers_watchlist, sym)
-                        exclude_opn_gainers.append(sym)
-                req_lim += lim_increment 
-                newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
-            except Exception as e:
-                print(e)
-        if ctr == req_lim - lim_increment:
-            newsUrl += ticker
-        else:
-            newsUrl += ',' + ticker
-        ctr += 1  
-    try:
-        res = auth.get(url)
-        json = res.json()
-        time.sleep(1)
-        for quote in json['response']['quotes']['quote']:
-            sym = quote['symbol']
-            ask = quote['ask']
-            opn = quote['opn']
-            perc_from_open = (ask - opn) / opn
-            if perc_from_open >= targ_rate:
-                message = '\n\n' + 'TEST: Buy ' + sym + ' at ' + str(ask) + '\n' \
-                        + str(round(perc_from_open, 4) * 100) + '% gain since open.'
-                #sendEmail(message, True)
-                # if checkToBuy():
-                #     shares_to_buy = round(max_invest / ask)
-                #     buy(sym, shares_to_buy, ask)
-                addToWatchlist(gainers_watchlist, sym)
-                exclude_opn_gainers.append(sym)
-    except Exception as e:
-        print(e)
+# def checkGainFromOpen():
+#     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+#     ctr = 0
+#     req_lim = 400
+#     lim_increment = 400
+#     message = '\n'
+#     targ_rate = .20
+#     for ticker in ticker_list_condensed:
+#         if ctr == req_lim:
+#             try:
+#                 res = auth.get(url)
+#                 json = res.json()
+#                 time.sleep(1)
+#                 for quote in json['response']['quotes']['quote']:
+#                     sym = quote['symbol']
+#                     ask = quote['ask']
+#                     opn = quote['opn']
+#                     perc_from_open = (ask - opn) / opn
+#                     if perc_from_open >= targ_rate:
+#                         message = '\n\n' + 'TEST: Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                 + str(round(perc_from_open, 4) * 100) + '% gain since open.'
+#                         #sendEmail(message, True)
+#                         # if checkToBuy():
+#                         #     shares_to_buy = round(max_invest / ask)
+#                         #     buy(sym, shares_to_buy, ask)
+#                         addToWatchlist(gainers_watchlist, sym)
+#                         exclude_opn_gainers.append(sym)
+#                 req_lim += lim_increment 
+#                 newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
+#             except Exception as e:
+#                 print(e)
+#         if ctr == req_lim - lim_increment:
+#             newsUrl += ticker
+#         else:
+#             newsUrl += ',' + ticker
+#         ctr += 1  
+#     try:
+#         res = auth.get(url)
+#         json = res.json()
+#         time.sleep(1)
+#         for quote in json['response']['quotes']['quote']:
+#             sym = quote['symbol']
+#             ask = quote['ask']
+#             opn = quote['opn']
+#             perc_from_open = (ask - opn) / opn
+#             if perc_from_open >= targ_rate:
+#                 message = '\n\n' + 'TEST: Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                         + str(round(perc_from_open, 4) * 100) + '% gain since open.'
+#                 #sendEmail(message, True)
+#                 # if checkToBuy():
+#                 #     shares_to_buy = round(max_invest / ask)
+#                 #     buy(sym, shares_to_buy, ask)
+#                 addToWatchlist(gainers_watchlist, sym)
+#                 exclude_opn_gainers.append(sym)
+#     except Exception as e:
+#         print(e)
 
-def checkVolGainers():
-    global prior_min
-    url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
-    ctr = 0
-    message = '\n'
-    target_rate = .1
-    curr_min = datetime.now().minute
-    while curr_min >= prior_min:
-        curr_min = datetime.now().minute
-        if curr_min > prior_min:
-            for ticker in early_gainers:
-                if ctr == 0:
-                    url += ticker
-                else:
-                    url += ',' + ticker
-                ctr += 1 
-            try:
-                res = auth.get(url)
-                json = res.json()
-                time.sleep(1)
-                for quote in json['response']['quotes']['quote']:
-                    sym = quote['symbol']
-                    ask = quote['ask']
-                    vol = quote['vl']
-                    tick_dir = quote['tradetick']
-                    vol_30_day = quote['adv_30']
-                    if vol != '' and vol_30_day != '' and vol != '0' and vol_30_day != '0':
-                        if float(early_gainers_vol[sym]) == 0:
-                            early_gainers_vol[sym] = float(vol) - float(early_gainers_vol[sym])
-                        else:
-                            early_gainers_vol[sym] = float(vol) - float(early_gainers_vol[sym])
-                            vol_perc = early_gainers_vol[sym] / float(vol_30_day)
-                            if vol_perc >= target_rate and tick_dir == 'u' and float(early_gainers_vol[sym]) != 0:
-                                message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
-                                        + str(round(vol_perc, 4) * 100) + '% of 30 day avg vol on tick.'
-                                sendEmail(message, True)
-                                # if checkToBuy():
-                                #     shares_to_buy = round(max_invest / ask)
-                                #     buy(sym, shares_to_buy, ask)
-                                addToWatchlist(vol_gainers_watchlist, sym)
-                                exclude_vol_gainers.append(sym)
-                url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
-            except Exception as e:
-                print(e) 
-            break
-    prior_min = curr_min
+# def checkVolGainers():
+#     global prior_min
+#     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+#     ctr = 0
+#     message = '\n'
+#     target_rate = .1
+#     curr_min = datetime.now().minute
+#     while curr_min >= prior_min:
+#         curr_min = datetime.now().minute
+#         if curr_min > prior_min:
+#             for ticker in early_gainers:
+#                 if ctr == 0:
+#                     url += ticker
+#                 else:
+#                     url += ',' + ticker
+#                 ctr += 1 
+#             try:
+#                 res = auth.get(url)
+#                 json = res.json()
+#                 time.sleep(1)
+#                 for quote in json['response']['quotes']['quote']:
+#                     sym = quote['symbol']
+#                     ask = quote['ask']
+#                     vol = quote['vl']
+#                     tick_dir = quote['tradetick']
+#                     vol_30_day = quote['adv_30']
+#                     if vol != '' and vol_30_day != '' and vol != '0' and vol_30_day != '0':
+#                         if float(early_gainers_vol[sym]) == 0:
+#                             early_gainers_vol[sym] = float(vol) - float(early_gainers_vol[sym])
+#                         else:
+#                             early_gainers_vol[sym] = float(vol) - float(early_gainers_vol[sym])
+#                             vol_perc = early_gainers_vol[sym] / float(vol_30_day)
+#                             if vol_perc >= target_rate and tick_dir == 'u' and float(early_gainers_vol[sym]) != 0:
+#                                 message = '\n\n' + 'VOL: Buy ' + sym + ' at ' + str(ask) + '\n' \
+#                                         + str(round(vol_perc, 4) * 100) + '% of 30 day avg vol on tick.'
+#                                 sendEmail(message, True)
+#                                 # if checkToBuy():
+#                                 #     shares_to_buy = round(max_invest / ask)
+#                                 #     buy(sym, shares_to_buy, ask)
+#                                 addToWatchlist(vol_gainers_watchlist, sym)
+#                                 exclude_vol_gainers.append(sym)
+#                 url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='
+#             except Exception as e:
+#                 print(e) 
+#             break
+#     prior_min = curr_min
 
 def sendEmail(message, public):
     if len(message) > 10:
@@ -667,6 +784,11 @@ while running:
     except Exception as e:
         print(e)
 
+#test
+    # candles['TST'] = [candle(10, 9, 10.50, 8.50, 0), candle(9, 8, 9.50, 7.50, 0), candle(8, 7, 8.50, 6.50, 0), candle(7, 7.10, 8, 6, 0)]
+    # candlestickAnalysis()
+#test
+
     try:
         ticker_list = []
         company_list = open(cfg.file['company_list']) 
@@ -680,25 +802,24 @@ while running:
         print(e)
 
     # early morning close, ready to send emails
-    if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 17:
-        try:
-            fillCondensed()
-            readFromMasIfEmpty()
-            #checkNews()
-        except Exception as e:
-            print(e)
-        print('close cycle done')
+    # if clockJson == 'close' and datetime.now().hour > 5 and datetime.now().hour < 17:
+    #     try:
+    #         fillCondensed()
+    #         readFromMasIfEmpty()
+    #         #checkNews()
+    #     except Exception as e:
+    #         print(e)
+    #     print('close cycle done')
     
-    elif clockJson == 'close' and datetime.now().hour >= 17:
+    if clockJson == 'close' and datetime.now().hour >= 17:
         running = False
         deleteWatchlists()
         print('close cycle done')
 
-    # pre market or after hours
-    if clockJson == 'pre' or clockJson == 'after':
+    if clockJson == 'pre':
         try:
             readFromMasIfEmpty()
-            #checkNews()
+            checkGains()      
         except Exception as e:
             print(e)
         print('pre cycle done')
@@ -710,19 +831,22 @@ while running:
             gainers_thread = threading.Thread(target=checkGains)
             #news_thread = threading.Thread(target=checkNews)
             #hi_lo_thread = threading.Thread(target=checkHiLo)
-            opn_gainers_thread = threading.Thread(target=checkGainFromOpen)
-            vol_gainers_thread = threading.Thread(target=checkVolGainers)
+            #opn_gainers_thread = threading.Thread(target=checkGainFromOpen)
+            #vol_gainers_thread = threading.Thread(target=checkVolGainers)
+            analysis_thread = threading.Thread(target=candlestickAnalysis)
+            create_candles_thread = threading.Thread(target=createMinuteCandles)
+            analysis_thread.start()
+            create_candles_thread.start()
             gainers_thread.start()
             #news_thread.start()
             #hi_lo_thread.start()
-            opn_gainers_thread.start()
-            vol_gainers_thread.start()
-            gainers_thread.join()
-            checkEarlyGainers()
+            #vol_gainers_thread.start()
             #news_thread.join()
             #hi_lo_thread.join()
-            opn_gainers_thread.join()
-            vol_gainers_thread.join()
+            analysis_thread.join()
+            gainers_thread.join()
+            create_candles_thread.join()
+            #vol_gainers_thread.join()
         except Exception as e:
             print(e)
         print('open cycle done')
