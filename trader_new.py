@@ -507,7 +507,7 @@ def checkGains():
                 sym = quote['symbol']
                 if sym not in exclude_close_open:
                     if percent_change >= gain_check:
-                        message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                        message = '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                 + str(round(float(percent_change), 4) * 100) + '% gain since prior day close'
                         sendEmail(message, True) 
                         addToWatchlist(early_gainers_watchlist, sym)
