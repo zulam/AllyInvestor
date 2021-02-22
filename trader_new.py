@@ -816,16 +816,24 @@ while running:
         deleteWatchlists()
         print('close cycle done')
 
-    if clockJson == 'pre':
-        try:
-            readFromMasIfEmpty()
-            checkGains()      
-        except Exception as e:
-            print(e)
-        print('pre cycle done')
+    # if clockJson == 'pre':
+    #     try:
+    #         readFromMasIfEmpty()
+    #         gainers_thread = threading.Thread(target=checkGains)
+    #         analysis_thread = threading.Thread(target=candlestickAnalysis)
+    #         create_candles_thread = threading.Thread(target=createMinuteCandles)
+    #         create_candles_thread.start()
+    #         create_candles_thread.start()
+    #         gainers_thread.start()
+    #         analysis_thread.join()
+    #         gainers_thread.join()
+    #         create_candles_thread.join()
+    #     except Exception as e:
+    #         print(e)
+    #     print('pre cycle done')
 
     # open 
-    if clockJson == 'open':
+    if clockJson == 'open' or clockJson == 'pre':
         try: 
             readFromMasIfEmpty()
             gainers_thread = threading.Thread(target=checkGains)
