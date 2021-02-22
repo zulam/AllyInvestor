@@ -125,10 +125,10 @@ def createMinuteCandles():
                     sym = quote['symbol']
                     ask = float(quote['ask'])
                     vol = float(quote['vl'])
-                    if ask > min_candles['symbol'].high:
-                        min_candles['symbol'].high = ask 
-                    elif ask < min_candles['symbol'].low:
-                        min_candles['symbol'].low = ask 
+                    if ask > min_candles[sym].high:
+                        min_candles[sym].high = ask 
+                    elif ask < min_candles[sym].low:
+                        min_candles[sym].low = ask 
             opening_min = False
         except Exception as e:
             print(e) 
@@ -455,7 +455,7 @@ def checkNews():
 #         print(e)
 
 def checkGains():
-    #message = '\n'
+    message = '\n'
     url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
     ctr = 0
     req_lim = 400
@@ -477,7 +477,7 @@ def checkGains():
                         sym = quote['symbol']
                         if sym not in exclude_close_open:
                             if percent_change >= gain_check:
-                                message += '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
+                                message = '\n\n' + 'Watch ' + sym + ' at ' + str(quote['ask']) + '\n' \
                                         + str(round(float(percent_change), 4) * 100) + '% gain since prior day close'
                                 sendEmail(message, True) 
                                 addToWatchlist(early_gainers_watchlist, sym)
@@ -784,11 +784,6 @@ while running:
     except Exception as e:
         print(e)
 
-#test
-    # candles['TST'] = [candle(10, 9, 10.50, 8.50, 0), candle(9, 8, 9.50, 7.50, 0), candle(8, 7, 8.50, 6.50, 0), candle(7, 7.10, 8, 6, 0)]
-    # candlestickAnalysis()
-#test
-
     try:
         ticker_list = []
         company_list = open(cfg.file['company_list']) 
@@ -835,6 +830,7 @@ while running:
     # open 
     if clockJson == 'open' or clockJson == 'pre':
         try: 
+            fillCondensed()
             readFromMasIfEmpty()
             gainers_thread = threading.Thread(target=checkGains)
             #news_thread = threading.Thread(target=checkNews)
