@@ -289,66 +289,66 @@ def deleteWatchlists():
 #         print(e)
 #         return False
 
-def sell(ticker, quant, lim):
-    try:
-        message = '\n'
-        url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
-        body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="1" Side="2" Acct=' + '\"' + cfg.account + '\"' \
-        + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
-        resp = auth.post(url, body)
-        if resp.status_code == 200:
-            message += 'Sell order placed for ' + ticker + ' at ' + str(lim) 
-        else:
-            message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
-        sendEmail(message, False)
-        time.sleep(1)
-    except Exception as e:
-        print(e)
+# def sell(ticker, quant, lim):
+#     try:
+#         message = '\n'
+#         url = 'https://api.tradeking.com/v1/accounts/' + cfg.account + '/orders.xml'
+#         body = '<FIXML xmlns=\"http://www.fixprotocol.org/FIXML-5-0-SP2\"><Order TmInForce="0" Typ="1" Side="2" Acct=' + '\"' + cfg.account + '\"' \
+#         + '><Instrmt SecTyp="CS" Sym=' + '\"' + ticker + '\"' + '/><OrdQty Qty=' + '\"' + str(quant) + '\"' + '/></Order></FIXML>'
+#         resp = auth.post(url, body)
+#         if resp.status_code == 200:
+#             message += 'Sell order placed for ' + ticker + ' at ' + str(lim) 
+#         else:
+#             message += 'SELL ORDER FAILED FOR ' + ticker + ' at ' + str(lim)
+#         sendEmail(message, False)
+#         time.sleep(1)
+#     except Exception as e:
+#         print(e)
 
-def checkToSell():
-    message = '\n'
-    owned_url = 'https://api.tradeking.com/v1/accounts.json'
-    holdings = {}
-    last_price = {}
-    qty = {}
-    stocks_owned = []
-    try:
-        request = auth.get(owned_url)
-        profile = request.json()
-        info = profile['response']['accounts']['accountsummary']
-    except Exception as e:
-        print(e)
-    try:
-        for item in info:
-            if item['account'] == cfg.account:
-                stocks_owned.append(item['accountholdings']['holding'])
-                for holding in stocks_owned:
-                    for item in holding: 
-                        if item['displaydata']['symbol'] not in sym_ign:
-                            holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
-                            last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
-                            qty[item['displaydata']['symbol']] = item['displaydata']['qty']
-    except Exception as e:
-        print(e)
-    try:   
-        for key, value in holdings.items():
-            if key not in exclude_sold:
-                orig = float(value[1].replace('$','').replace(',',''))
-                curr = float(value[0].replace('$','').replace(',',''))
-                rate = (curr - orig) / orig
-                if rate <= sellBottom:
-                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    exclude_sold.append(key)
-                if rate >= sellTop:
-                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    exclude_sold.append(key)
-        sendEmail(message, False)
-    except Exception as e:
-        print(e)
+# def checkToSell():
+#     message = '\n'
+#     owned_url = 'https://api.tradeking.com/v1/accounts.json'
+#     holdings = {}
+#     last_price = {}
+#     qty = {}
+#     stocks_owned = []
+#     try:
+#         request = auth.get(owned_url)
+#         profile = request.json()
+#         info = profile['response']['accounts']['accountsummary']
+#     except Exception as e:
+#         print(e)
+#     try:
+#         for item in info:
+#             if item['account'] == cfg.account:
+#                 stocks_owned.append(item['accountholdings']['holding'])
+#                 for holding in stocks_owned:
+#                     for item in holding: 
+#                         if item['displaydata']['symbol'] not in sym_ign:
+#                             holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+#                             last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
+#                             qty[item['displaydata']['symbol']] = item['displaydata']['qty']
+#     except Exception as e:
+#         print(e)
+#     try:   
+#         for key, value in holdings.items():
+#             if key not in exclude_sold:
+#                 orig = float(value[1].replace('$','').replace(',',''))
+#                 curr = float(value[0].replace('$','').replace(',',''))
+#                 rate = (curr - orig) / orig
+#                 if rate <= sellBottom:
+#                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+#                             + str(round(rate, 4) * 100) + '% from bought)'
+#                     sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+#                     exclude_sold.append(key)
+#                 if rate >= sellTop:
+#                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+#                             + str(round(rate, 4) * 100) + '% from bought)'
+#                     sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+#                     exclude_sold.append(key)
+#         sendEmail(message, False)
+#     except Exception as e:
+#         print(e)
 
 def checkNews():
     newsUrl = 'https://api.tradeking.com/v1/market/news/search.json?symbols='
@@ -834,7 +834,7 @@ while running:
         try: 
             fillCondensed()
             readFromMasIfEmpty()
-            check_to_sell_thread = threading.Thread(target=checkToSell)
+            #check_to_sell_thread = threading.Thread(target=checkToSell)
             gainers_thread = threading.Thread(target=checkGains)
             #news_thread = threading.Thread(target=checkNews)
             #hi_lo_thread = threading.Thread(target=checkHiLo)
@@ -842,7 +842,7 @@ while running:
             #vol_gainers_thread = threading.Thread(target=checkVolGainers)
             analysis_thread = threading.Thread(target=candlestickAnalysis)
             create_candles_thread = threading.Thread(target=createMinuteCandles)
-            check_to_sell_thread.start()
+            #check_to_sell_thread.start()
             analysis_thread.start()
             create_candles_thread.start()
             gainers_thread.start()
