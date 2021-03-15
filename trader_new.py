@@ -314,6 +314,7 @@ def checkToSell():
     stocks_owned = []
     try:
         request = auth.get(owned_url)
+        time.sleep(1)
         profile = request.json()
         info = profile['response']['accounts']['accountsummary']
     except Exception as e:
@@ -323,29 +324,47 @@ def checkToSell():
             if item['account'] == cfg.account:
                 stocks_owned.append(item['accountholdings']['holding'])
                 for item in stocks_owned:
-                    if item['displaydata']['symbol'] not in sym_ign:
-                        holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
-                        last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
-                        qty[item['displaydata']['symbol']] = item['displaydata']['qty']
+                    if len(stocks_owned[0]) > 1 and len(stocks_owned[0]) < 10:
+                        for stock in item:
+                            try:
+                                if stock['displaydata']['symbol'] not in sym_ign:
+                                    holdings[stock['displaydata']['symbol']] = (stock['displaydata']['marketvalue'], stock['displaydata']['costbasis'])
+                                    last_price[stock['displaydata']['symbol']] = stock['displaydata']['lastprice']
+                                    qty[stock['displaydata']['symbol']] = stock['displaydata']['qty']
+                            except Exception as e:
+                                print(e)
+                    else:
+                        try:
+                            if item['displaydata']['symbol'] not in sym_ign:
+                                holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+                                last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
+                                qty[item['displaydata']['symbol']] = item['displaydata']['qty']
+                        except Exception as e:
+                            print(e)
+
     except Exception as e:
         print(e)
     try:   
         for key, value in holdings.items():
-            if key not in exclude_sold:
-                orig = float(value[1].replace('$','').replace(',',''))
-                curr = float(value[0].replace('$','').replace(',',''))
-                rate = (curr - orig) / orig
-                if rate <= sellBottom:
-                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    #exclude_sold.append(key)
-                if rate >= sellTop:
-                    message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
-                            + str(round(rate, 4) * 100) + '% from bought)'
-                    sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    #exclude_sold.append(key)
-        sendEmail(message, False)
+            quote_url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols=' + key  
+            res = auth.get(quote_url)
+            json = res.json()
+            time.sleep(1)
+            orig = float(value[1].replace('$','').replace(',',''))
+            curr = float(json['response']['quotes']['quote']['bid'])
+            curr_val = curr * float(qty[key])
+            rate = (curr_val - orig) / orig
+            if rate <= sellBottom:
+                message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+                        + str(round(rate, 4) * 100) + '% from bought)'
+                sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+                #exclude_sold.append(key)
+            if rate >= sellTop:
+                message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
+                        + str(round(rate, 4) * 100) + '% from bought)'
+                sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
+                #exclude_sold.append(key)
+            sendEmail(message, False)
     except Exception as e:
         print(e)
 
