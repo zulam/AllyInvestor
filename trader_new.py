@@ -736,22 +736,22 @@ def sendEmail(message, public):
         if datetime.now().hour >= 6 and datetime.now().hour <= 22:
             try:
                 msg = EmailMessage()
-                # msg['Subject'] = 'Ally Investor'
-                # msg['From'] = cfg.email['sender']
-                # if public:
-                #     msg['To'] = ', '.join(cfg.email['receivers'])
-                # else:
-                #     msg['To'] = ', '.join(cfg.email['receiver'])
-                # msg.set_content(message)
-                # smtp_server = "smtp.gmail.com"
-                # port = 587
-                # sender = cfg.email['sender']
-                # password = cfg.email['password']
-                # server = smtplib.SMTP(smtp_server, port)
-                # server.starttls()
-                # server.login(sender, password)
-                # #server.sendmail(sender, receiver, message)
-                # server.send_message(msg)
+                msg['Subject'] = 'Ally Investor'
+                msg['From'] = cfg.email['sender']
+                if public:
+                    msg['To'] = ', '.join(cfg.email['receivers'])
+                else:
+                    msg['To'] = ', '.join(cfg.email['receiver'])
+                msg.set_content(message)
+                smtp_server = "smtp.gmail.com"
+                port = 587
+                sender = cfg.email['sender']
+                password = cfg.email['password']
+                server = smtplib.SMTP(smtp_server, port)
+                server.starttls()
+                server.login(sender, password)
+                #server.sendmail(sender, receiver, message)
+                server.send_message(msg)
             except Exception as e:
                 print(e)
         else:
