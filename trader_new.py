@@ -322,12 +322,11 @@ def checkToSell():
         for item in info:
             if item['account'] == cfg.account:
                 stocks_owned.append(item['accountholdings']['holding'])
-                for holding in stocks_owned:
-                    for item in holding: 
-                        if item['displaydata']['symbol'] not in sym_ign:
-                            holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
-                            last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
-                            qty[item['displaydata']['symbol']] = item['displaydata']['qty']
+                for item in stocks_owned:
+                    if item['displaydata']['symbol'] not in sym_ign:
+                        holdings[item['displaydata']['symbol']] = (item['displaydata']['marketvalue'], item['displaydata']['costbasis'])
+                        last_price[item['displaydata']['symbol']] = item['displaydata']['lastprice']
+                        qty[item['displaydata']['symbol']] = item['displaydata']['qty']
     except Exception as e:
         print(e)
     try:   
@@ -340,12 +339,12 @@ def checkToSell():
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
                     sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    exclude_sold.append(key)
+                    #exclude_sold.append(key)
                 if rate >= sellTop:
                     message += '\n\n' + 'Sell ' + key + ' for ' + str(value[0]) + ' (' \
                             + str(round(rate, 4) * 100) + '% from bought)'
                     sell(key, qty[key], round(float(last_price[key].replace('$','').replace(',','')) * .95, 2))
-                    exclude_sold.append(key)
+                    #exclude_sold.append(key)
         sendEmail(message, False)
     except Exception as e:
         print(e)
@@ -737,22 +736,22 @@ def sendEmail(message, public):
         if datetime.now().hour >= 6 and datetime.now().hour <= 22:
             try:
                 msg = EmailMessage()
-                msg['Subject'] = 'Ally Investor'
-                msg['From'] = cfg.email['sender']
-                if public:
-                    msg['To'] = ', '.join(cfg.email['receivers'])
-                else:
-                    msg['To'] = ', '.join(cfg.email['receiver'])
-                msg.set_content(message)
-                smtp_server = "smtp.gmail.com"
-                port = 587
-                sender = cfg.email['sender']
-                password = cfg.email['password']
-                server = smtplib.SMTP(smtp_server, port)
-                server.starttls()
-                server.login(sender, password)
-                #server.sendmail(sender, receiver, message)
-                server.send_message(msg)
+                # msg['Subject'] = 'Ally Investor'
+                # msg['From'] = cfg.email['sender']
+                # if public:
+                #     msg['To'] = ', '.join(cfg.email['receivers'])
+                # else:
+                #     msg['To'] = ', '.join(cfg.email['receiver'])
+                # msg.set_content(message)
+                # smtp_server = "smtp.gmail.com"
+                # port = 587
+                # sender = cfg.email['sender']
+                # password = cfg.email['password']
+                # server = smtplib.SMTP(smtp_server, port)
+                # server.starttls()
+                # server.login(sender, password)
+                # #server.sendmail(sender, receiver, message)
+                # server.send_message(msg)
             except Exception as e:
                 print(e)
         else:
