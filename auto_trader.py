@@ -328,6 +328,7 @@ while not running:
             cfg.key['oauth_token'],
             cfg.key['oauth_token_secret'])
         running = True
+        sendEmail("Simulation program has begun.")
     except Exception as e:
         print(e)
 while running:
