@@ -24,6 +24,7 @@ bought = {}
 bought_gainers = False
 profit = 0.0
 spent = 0.0
+selloff = False
 
 def fillCondensed():
     if len(ticker_list_condensed) == 0:
@@ -303,6 +304,7 @@ def checkHiLo():
 def sendEmail(message):
     if len(message) > 10:
         try:
+            print(message)
             msg = EmailMessage()
             msg['Subject'] = 'Ally Investor'
             msg['From'] = cfg.email['sender']
@@ -360,6 +362,34 @@ while running:
     if clockJson == 'close' and datetime.now().hour >= 17:
         running = False
         print('close cycle done')
+
+    if clockJson == 'close' and datetime.now().hour < 17 and not selloff:
+        message = '\n'
+        url = 'https://api.tradeking.com/v1/market/ext/quotes.json?symbols='    
+        ctr = 0
+        for key in bought:
+            if ctr == 0:
+                url += key
+            else:
+                url += ',' + key
+            ctr += 1
+        try:
+            r = auth.get(url)
+            json_result = r.json()
+            time.sleep(1)
+            for quote in json_result['response']['quotes']['quote']:
+                if quote['ask'] != '':
+                    prof = float(quote['bid']) - float(bought[quote['symbol']])
+                    percent_change = prof / float(bought[quote['symbol']])
+                    sym = quote['symbol']
+                    message = '\n\n' + 'Sold ' + sym + ' for ' + str(quote['bid']) + ' (' \
+                        + str(round(percent_change, 4) * 100) + '% from bought)'
+                    sendEmail(message)
+                    profit += prof
+                    bought.pop(sym)
+        except Exception as e:
+            print(e)
+        selloff = True
 
     if clockJson == 'pre':
         try:
